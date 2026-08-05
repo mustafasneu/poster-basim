@@ -200,6 +200,10 @@ simgeye çift tıklayarak açın. Kısayolu istemezseniz masaüstünden silmeniz
 <h2 id="genel">2. Program açıldığında</h2>
 <p>Pencere iki bölümden oluşur: solda <b>ayar paneli</b>, sağda <b>önizleme alanı</b>.
 Resim seçilene kadar alttaki iki buton pasiftir (soluk görünür) — bu normaldir.</p>
+<p>Sol paneldeki <b>Oranı Koru ve Hazır PDF Üret</b> ile <b>Çıktı Klasörünü Aç</b> düğmeleri
+her zaman panelin en altında durur. Ekranınız kısaysa ayarlar bölümü kendi içinde kayar
+(sağında ince bir kaydırma çubuğu çıkar, fare tekerleğiyle de gezebilirsiniz); düğmeler
+yine de yerinde kalır.</p>
 {sekil("01_baslangic.png", "Açılış ekranı", "sol panel ayarlar, sağ panel önizleme")}
 
 <h2 id="resim">3. Adım 1 — Resim seçme</h2>
@@ -332,6 +336,15 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
       <td>Renk Canlılığı 1.3, Kontrast 1.2 deneyin; mat kâğıt her zaman ekrandan sönük basar.</td></tr>
   <tr><td>Düğmeler soluk / basılmıyor</td>
       <td>Henüz resim seçilmemiştir. Önce 2. adımı yapın.</td></tr>
+  <tr><td>“Oranı Koru ve Hazır PDF Üret” düğmesini göremiyorum</td>
+      <td>Pencereyi biraz büyütün ya da tam ekran yapın. Düğmeler panelin en altındadır;
+          ayarlar bölümü sığmazsa kendi içinde kayar.</td></tr>
+  <tr><td><b>macOS:</b> PDF üretilemiyor / izin hatası</td>
+      <td>macOS, programların Masaüstü klasörüne erişimini izne bağlar. Çıkan izin
+          penceresinde <b>İzin Ver</b> deyin. Yanlışlıkla reddettiyseniz
+          <b>Sistem Ayarları → Gizlilik ve Güvenlik → Dosyalar ve Klasörler</b> yolundan
+          izni açın. İzin verilmezse program çıktıyı <b>Belgeler</b> klasörüne yazar;
+          tamamlandı penceresinde tam yol görünür.</td></tr>
   <tr><td>Büyük resimde program donmuş gibi</td>
       <td>Donmadı; alt satırdaki “Parça üretiliyor: n / m” ilerlemesini izleyin.</td></tr>
   <tr><td><b>Windows:</b> çift tıklayınca pencere açılmıyor</td>

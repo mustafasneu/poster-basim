@@ -384,6 +384,46 @@ def tk_pencerelerini_turkcelestir(root: tk.Misc):
         pass
 
 
+def cikis_klasoru_hazirla(klasor_adi: str) -> str:
+    """Yazılabilir bir çıktı klasörü oluşturur.
+
+    macOS, uygulamaların Masaüstü ve Belgeler klasörlerine erişimini izne bağlar; izin
+    verilmemişse yazma "Operation not permitted" ile düşer. O yüzden masaüstü tutmazsa
+    sırayla Belgeler ve ev dizini denenir — kullanıcı üretimi kaybetmesin.
+    """
+    ev = os.path.expanduser("~")
+    adaylar = [masaustu_yolu(), os.path.join(ev, "Documents"), os.path.join(ev, "Belgeler"), ev]
+    ilk_hata: OSError | None = None
+
+    gorulen = []
+    for kok in adaylar:
+        if not kok or kok in gorulen or not os.path.isdir(kok):
+            continue
+        gorulen.append(kok)
+        yol = os.path.join(kok, "Poster_Parcalari", klasor_adi)
+        try:
+            os.makedirs(yol, exist_ok=True)
+            # Klasörün açılması yazma izni demek değil; gerçekten yazarak sınıyoruz.
+            deneme = os.path.join(yol, ".yazma_denemesi")
+            with open(deneme, "w", encoding="utf-8") as dosya:
+                dosya.write("x")
+            os.remove(deneme)
+            return yol
+        except OSError as hata:
+            if ilk_hata is None:
+                ilk_hata = hata
+            continue
+
+    ek = ""
+    if MACOS:
+        ek = (
+            "\n\nmacOS, programların Masaüstü klasörüne erişimini izne bağlar.\n"
+            "Sistem Ayarları → Gizlilik ve Güvenlik → Dosyalar ve Klasörler yolundan\n"
+            "Terminal'e (ya da Python'a) 'Masaüstü Klasörü' iznini verip tekrar deneyin."
+        )
+    raise OSError(f"Çıktı klasörü oluşturulamadı: {ilk_hata}{ek}")
+
+
 def pencere_simgesini_ayarla(root: tk.Misc):
     """Program simgesini pencereye/görev çubuğuna uygular; referansı geri döndürür."""
     simge_yolu = os.path.join(PROJE_DIZINI, "simge.png")
@@ -466,70 +506,80 @@ class SunmesizBaskiApp:
 
     # ------------------------------------------------------------------ arayüz
     def arayuz_tasarla(self):
-        sol_panel = ttk.Frame(self.root, padding="15")
+        sol_panel = ttk.Frame(self.root, padding=(15, 15, 15, 12))
         sol_panel.pack(side=tk.LEFT, fill=tk.Y)
 
-        ttk.Label(sol_panel, text="--- 1. DOSYA SEÇİMİ ---", font=(self.font_ailesi, 11, "bold")).pack(
-            pady=5, anchor=tk.W
-        )
-        self.dosya_btn = ttk.Button(sol_panel, text="Bilgisayardan Resim Seç", command=self.resim_sec)
-        self.dosya_btn.pack(fill=tk.X, pady=5)
-        self.dosya_lbl = ttk.Label(
-            sol_panel, text="Henüz resim seçilmedi...", wraplength=220, foreground="gray"
-        )
-        self.dosya_lbl.pack(anchor=tk.W, pady=2)
-
-        ttk.Label(
-            sol_panel, text="--- 2. A4 POSTER AYARLARI ---", font=(self.font_ailesi, 11, "bold")
-        ).pack(pady=15, anchor=tk.W)
-
-        ttk.Label(sol_panel, text="Sütun Sayısı (Yatay - X):").pack(anchor=tk.W)
-        self.sutun_spin = ttk.Spinbox(sol_panel, from_=1, to=20, width=10)
-        self.sutun_spin.set(4)
-        self.sutun_spin.pack(pady=5, anchor=tk.W)
-
-        ttk.Label(sol_panel, text="Satır Sayısı (Dikey - Y):").pack(anchor=tk.W)
-        self.satir_spin = ttk.Spinbox(sol_panel, from_=1, to=20, width=10)
-        self.satir_spin.set(2)
-        self.satir_spin.pack(pady=5, anchor=tk.W)
-
-        ttk.Label(sol_panel, text="Yazıcı Sayfa Yönü:").pack(anchor=tk.W)
-        self.yon_combo = ttk.Combobox(
-            sol_panel, values=["Yatay (Landscape)", "Dikey (Portrait)"], state="readonly"
-        )
-        self.yon_combo.set("Yatay (Landscape)")
-        self.yon_combo.pack(fill=tk.X, pady=5)
-
-        ttk.Label(sol_panel, text="Çakışma Payı (Piksel Bindirme):").pack(anchor=tk.W)
-        self.cakisma_spin = ttk.Spinbox(sol_panel, from_=0, to=100, width=10)
-        self.cakisma_spin.set(15)
-        self.cakisma_spin.pack(pady=5, anchor=tk.W)
-
-        ttk.Label(
-            sol_panel, text="--- 3. DETAYLI İYİLEŞTİRME ---", font=(self.font_ailesi, 11, "bold")
-        ).pack(pady=15, anchor=tk.W)
-
-        self.keskinlik_slider = self._surgu_ekle(sol_panel, "Detay Netliği (Keskinlik):", 1.0, 4.0)
-        self.kontrast_slider = self._surgu_ekle(sol_panel, "Dinamik Kontrast:", 0.5, 2.5)
-        self.renk_slider = self._surgu_ekle(sol_panel, "Renk Canlılığı (Saturasyon):", 0.5, 2.5)
-        self.parlaklik_slider = self._surgu_ekle(sol_panel, "Genel Parlaklık:", 0.5, 2.0)
-
-        ttk.Button(sol_panel, text="Ayarları Sıfırla", command=self.ayarlari_sifirla).pack(
-            fill=tk.X, pady=(8, 0)
-        )
-
-        self.klasor_btn = ttk.Button(
-            sol_panel, text="Çıktı Klasörünü Aç", command=self.cikti_klasorunu_ac, state=tk.DISABLED
-        )
-        self.klasor_btn.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 10))
+        # Üretim düğmeleri EN ÖNCE paketlenir. Tk, yer kalmadığında en son paketleneni
+        # kırpar; macOS'ta widget'lar daha uzun olduğu için bu düğmeler ekran dışında
+        # kalıyordu. Önce paketlenince yerleri her sistemde garanti altında olur.
+        eylem = ttk.Frame(sol_panel)
+        eylem.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.kaydet_btn = ttk.Button(
-            sol_panel,
+            eylem,
             text="Oranı Koru ve Hazır PDF Üret",
             command=self.parcala_ve_pdf_yap,
             state=tk.DISABLED,
         )
-        self.kaydet_btn.pack(side=tk.BOTTOM, fill=tk.X, pady=(20, 0))
+        self.kaydet_btn.pack(fill=tk.X, pady=(12, 6))
+
+        self.klasor_btn = ttk.Button(
+            eylem, text="Çıktı Klasörünü Aç", command=self.cikti_klasorunu_ac, state=tk.DISABLED
+        )
+        self.klasor_btn.pack(fill=tk.X)
+
+        # Ayarlar kaydırılabilir bir alanda durur; yazı tipi büyük ya da ekran kısa olsa
+        # bile hiçbir ayar erişilemez hale gelmez.
+        ayarlar = self._kaydirilabilir_alan(sol_panel)
+
+        ttk.Label(ayarlar, text="--- 1. DOSYA SEÇİMİ ---", font=(self.font_ailesi, 11, "bold")).pack(
+            pady=5, anchor=tk.W
+        )
+        self.dosya_btn = ttk.Button(ayarlar, text="Bilgisayardan Resim Seç", command=self.resim_sec)
+        self.dosya_btn.pack(fill=tk.X, pady=5)
+        self.dosya_lbl = ttk.Label(
+            ayarlar, text="Henüz resim seçilmedi...", wraplength=220, foreground="gray"
+        )
+        self.dosya_lbl.pack(anchor=tk.W, pady=2)
+
+        ttk.Label(
+            ayarlar, text="--- 2. A4 POSTER AYARLARI ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=15, anchor=tk.W)
+
+        ttk.Label(ayarlar, text="Sütun Sayısı (Yatay - X):").pack(anchor=tk.W)
+        self.sutun_spin = ttk.Spinbox(ayarlar, from_=1, to=20, width=10)
+        self.sutun_spin.set(4)
+        self.sutun_spin.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(ayarlar, text="Satır Sayısı (Dikey - Y):").pack(anchor=tk.W)
+        self.satir_spin = ttk.Spinbox(ayarlar, from_=1, to=20, width=10)
+        self.satir_spin.set(2)
+        self.satir_spin.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(ayarlar, text="Yazıcı Sayfa Yönü:").pack(anchor=tk.W)
+        self.yon_combo = ttk.Combobox(
+            ayarlar, values=["Yatay (Landscape)", "Dikey (Portrait)"], state="readonly"
+        )
+        self.yon_combo.set("Yatay (Landscape)")
+        self.yon_combo.pack(fill=tk.X, pady=5)
+
+        ttk.Label(ayarlar, text="Çakışma Payı (Piksel Bindirme):").pack(anchor=tk.W)
+        self.cakisma_spin = ttk.Spinbox(ayarlar, from_=0, to=100, width=10)
+        self.cakisma_spin.set(15)
+        self.cakisma_spin.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(
+            ayarlar, text="--- 3. DETAYLI İYİLEŞTİRME ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=15, anchor=tk.W)
+
+        self.keskinlik_slider = self._surgu_ekle(ayarlar, "Detay Netliği (Keskinlik):", 1.0, 4.0)
+        self.kontrast_slider = self._surgu_ekle(ayarlar, "Dinamik Kontrast:", 0.5, 2.5)
+        self.renk_slider = self._surgu_ekle(ayarlar, "Renk Canlılığı (Saturasyon):", 0.5, 2.5)
+        self.parlaklik_slider = self._surgu_ekle(ayarlar, "Genel Parlaklık:", 0.5, 2.0)
+
+        ttk.Button(ayarlar, text="Ayarları Sıfırla", command=self.ayarlari_sifirla).pack(
+            fill=tk.X, pady=(8, 4)
+        )
 
         self.sag_panel = ttk.Frame(self.root, padding="10", relief="groove")
         self.sag_panel.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
@@ -545,6 +595,63 @@ class SunmesizBaskiApp:
         ttk.Label(
             self.sag_panel, text="powered by Omer OZTURK", foreground="gray", anchor=tk.E
         ).pack(side=tk.BOTTOM, fill=tk.X)
+
+    def _kaydirilabilir_alan(self, ust: ttk.Frame) -> ttk.Frame:
+        """Dikey kaydırılabilir bir çerçeve döndürür; kaydırma çubuğu ancak gerekirse çıkar."""
+        kutu = ttk.Frame(ust)
+        kutu.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        tuval = tk.Canvas(kutu, highlightthickness=0, borderwidth=0)
+        cubuk = ttk.Scrollbar(kutu, orient=tk.VERTICAL, command=tuval.yview)
+        tuval.configure(yscrollcommand=cubuk.set)
+        tuval.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        icerik = ttk.Frame(tuval)
+        pencere = tuval.create_window((0, 0), window=icerik, anchor="nw")
+
+        def cubugu_ayarla():
+            # Yükseklikler ancak yerleşim oturduktan sonra doğru okunur; bu yüzden
+            # karar boşta (after_idle) verilir, yoksa çubuk gereksizken de görünür.
+            gerekli = icerik.winfo_reqheight() > tuval.winfo_height()
+            if gerekli and not cubuk.winfo_ismapped():
+                cubuk.pack(side=tk.RIGHT, fill=tk.Y)
+            elif not gerekli and cubuk.winfo_ismapped():
+                cubuk.pack_forget()
+
+        def icerik_degisti(_olay=None):
+            tuval.configure(scrollregion=tuval.bbox("all"))
+            # Panel genişliği içeriğe göre belirlenir; metinler kırpılmasın.
+            tuval.configure(width=icerik.winfo_reqwidth())
+            tuval.after_idle(cubugu_ayarla)
+
+        def tuval_degisti(olay):
+            tuval.itemconfigure(pencere, width=olay.width)  # iç çerçeve genişliği takip etsin
+            icerik_degisti()
+
+        icerik.bind("<Configure>", icerik_degisti)
+        tuval.bind("<Configure>", tuval_degisti)
+
+        def kaydir(olay):
+            if icerik.winfo_reqheight() <= tuval.winfo_height():
+                return
+            # Windows/macOS <MouseWheel> delta gönderir, X11 Button-4/5 üretir.
+            adim = -1 if getattr(olay, "num", None) == 4 or getattr(olay, "delta", 0) > 0 else 1
+            tuval.yview_scroll(adim, "units")
+
+        tekerlek = ("<MouseWheel>", "<Button-4>", "<Button-5>")
+
+        def tekerlegi_bagla(_olay=None):  # panelin üzerindeyken alt widget'lar da kaydırsın
+            for dizi in tekerlek:
+                tuval.bind_all(dizi, kaydir)
+
+        def tekerlegi_birak(_olay=None):
+            for dizi in tekerlek:
+                tuval.unbind_all(dizi)
+
+        kutu.bind("<Enter>", tekerlegi_bagla)
+        kutu.bind("<Leave>", tekerlegi_birak)
+
+        return icerik
 
     def _surgu_ekle(self, ust: ttk.Frame, etiket: str, alt_sinir: float, ust_sinir: float):
         ttk.Label(ust, text=etiket).pack(anchor=tk.W)
@@ -672,8 +779,7 @@ class SunmesizBaskiApp:
 
         zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
         klasor_adi = f"Poster_OranKorumali_{zaman_damgasi}"
-        cikis_klasoru = os.path.join(masaustu_yolu(), "Poster_Parcalari", klasor_adi)
-        os.makedirs(cikis_klasoru, exist_ok=True)
+        cikis_klasoru = cikis_klasoru_hazirla(klasor_adi)
         pdf_yolu = os.path.join(cikis_klasoru, f"Oran_Korumali_Baski_{zaman_damgasi}.pdf")
 
         sayfa_boyutu = landscape(A4) if "Yatay" in self.yon_combo.get() else A4
@@ -735,8 +841,10 @@ class SunmesizBaskiApp:
         pdf_canvas.save()
         self.son_cikis_klasoru = cikis_klasoru
         self.klasor_btn.config(state=tk.NORMAL)
+        # Masaüstü yazılamazsa çıktı başka klasöre düşebilir; nereye gittiği yazsın.
+        nerede = os.path.basename(os.path.dirname(os.path.dirname(cikis_klasoru)))
         self.durum_lbl.config(
-            text=f"Tamamlandı: {toplam} sayfa → {os.path.basename(pdf_yolu)} (Masaüstü)"
+            text=f"Tamamlandı: {toplam} sayfa → {os.path.basename(pdf_yolu)} ({nerede})"
         )
         messagebox.showinfo(
             "Hazır",
