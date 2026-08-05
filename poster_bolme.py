@@ -260,6 +260,12 @@ def _bagimliliklari_hazirla():
         import PIL  # noqa: F401
         import reportlab  # noqa: F401
 
+        # Sertifika paketleri de aranır: eksikse macOS'ta bütün https indirmeleri
+        # sertifika hatasıyla düşer. Bunlar sonradan eklendiği için eski
+        # kurulumlarda bulunmaz; burada aranmazsa ortam kendini onaramaz.
+        import certifi  # noqa: F401
+        import truststore  # noqa: F401
+
         return
     except ImportError:
         pass
@@ -609,16 +615,41 @@ def guvenli_ac(istek, zaman_asimi: int):
     import urllib.request  # noqa: PLC0415
 
     son_hata = None
-    for zorla_certifi in (False, True):
+    for deneme in range(3):
+        # 3. deneme, sertifika paketleri eksikse onları kurup tekrar denemek içindir.
+        if deneme == 2 and not _sertifika_paketlerini_kur():
+            break
         try:
             return urllib.request.urlopen(
-                istek, timeout=zaman_asimi, context=_ssl_baglami(zorla_certifi)
+                istek, timeout=zaman_asimi, context=_ssl_baglami(zorla_certifi=deneme == 1)
             )
         except urllib.error.URLError as hata:
             if not isinstance(getattr(hata, "reason", None), ssl.SSLError):
                 raise
             son_hata = hata
     raise son_hata
+
+
+def _sertifika_paketlerini_kur() -> bool:
+    """Sertifika paketleri eksikse sessizce kurar (son çare kendini onarma)."""
+    eksikler = []
+    for paket in ("certifi", "truststore"):
+        try:
+            __import__(paket)
+        except ImportError:
+            eksikler.append(paket)
+    if not eksikler:
+        return False  # zaten kurulu; tekrar denemenin anlamı yok
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--quiet", *eksikler],
+            timeout=600,
+            check=False,
+            **_SESSIZ,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return all(__import__(p, fromlist=["__name__"]) for p in eksikler)
 
 
 _SSL_COZUMU = (
