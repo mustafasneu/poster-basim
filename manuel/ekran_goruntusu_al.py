@@ -89,6 +89,28 @@ def main():
         )
         app.linkten_al()
 
+    def pdf_sayfa_dialogu():
+        # Çok sayfalı PDF seçilince çıkan pencere; kılavuz için üç sayfalık örnek üretilir.
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas as pdf_canvas
+
+        ornek_pdf = os.path.join(GORSEL_DIZINI, "_ornek_cok_sayfa.pdf")
+        tuval = pdf_canvas.Canvas(ornek_pdf, pagesize=A4)
+        for sayfa in range(3):
+            tuval.drawString(80, 700, f"Ornek afis tasarimi - sayfa {sayfa + 1}")
+            tuval.showPage()
+        tuval.save()
+
+        root.after(900, lambda: cek(root, "02c_pdf_sayfa_secme", tum_ekran=True))
+        root.after(
+            1600,
+            lambda: [w.destroy() for w in root.winfo_children() if isinstance(w, tk.Toplevel)],
+        )
+        try:
+            app.resmi_yukle(ornek_pdf)
+        finally:
+            root.after(2200, lambda: os.path.exists(ornek_pdf) and os.remove(ornek_pdf))
+
     def uret():
         from tkinter import messagebox
 
@@ -109,6 +131,7 @@ def main():
         lambda: cek(root, "01_baslangic"),
         dosya_dialogu,
         link_dialogu,
+        pdf_sayfa_dialogu,
         lambda: app.resmi_yukle(ORNEK),
         lambda: cek(root, "03_resim_yuklendi"),
         lambda: (

@@ -19,7 +19,10 @@ import subprocess
 import sys
 
 # ---------------------------------------------------------------- kendi kendine kurulum
-GEREKLI_PAKETLER = ("pillow>=10", "reportlab>=4")
+GEREKLI_PAKETLER = ("pillow>=10", "reportlab>=4", "pypdfium2>=4")
+# PDF okuma bileşeni programın açılması için şart değildir; yoksa yalnızca PDF
+# kaynak kullanılamaz, o yüzden başlangıç denetiminde aranmaz (bkz. _calisir_mi).
+PDF_PAKETI = "pypdfium2>=4"
 PROJE_DIZINI = os.path.dirname(os.path.abspath(__file__))
 VENV_DIZINI = os.path.join(PROJE_DIZINI, ".venv")
 YENIDEN_BASLATMA_ISARETI = "POSTER_BOLME_KURULUM"
@@ -384,6 +387,62 @@ def tk_pencerelerini_turkcelestir(root: tk.Misc):
         pass
 
 
+PDF_DPI = 300  # afiş tasarımları vektörel olduğu için baskı çözünürlüğünde taranır
+PDF_EN_BUYUK_KENAR = 12000  # devasa sayfalarda bellek taşmasın diye üst sınır
+
+
+def pdfium_getir():
+    """PDF okuma bileşenini getirir; yoksa Türkçe açıklamayla ImportError yükseltir."""
+    try:
+        import pypdfium2  # noqa: PLC0415 — yalnızca PDF açılırken gerekiyor
+    except ImportError as hata:
+        raise ImportError(
+            "PDF okuma bileşeni (pypdfium2) kurulu değil.\n\n"
+            "Kurmak için şu komutu bir kez çalıştırın:\n"
+            f"{sys.executable} -m pip install {PDF_PAKETI}"
+        ) from hata
+    return pypdfium2
+
+
+def pdf_sayfa_sayisi(yol: str) -> int:
+    pdfium = pdfium_getir()
+    try:
+        belge = pdfium.PdfDocument(yol)
+    except Exception as hata:  # pypdfium2 kendi hata tiplerini kullanır
+        raise ValueError(f"PDF açılamadı:\n{hata}") from hata
+    try:
+        return len(belge)
+    finally:
+        belge.close()
+
+
+def pdf_sayfasini_goruntuye_cevir(yol: str, sayfa_no: int = 1) -> Image.Image:
+    """PDF'in bir sayfasını baskı çözünürlüğünde görüntüye çevirir (sayfa_no 1'den başlar)."""
+    pdfium = pdfium_getir()
+    try:
+        belge = pdfium.PdfDocument(yol)
+    except Exception as hata:
+        raise ValueError(f"PDF açılamadı:\n{hata}") from hata
+
+    try:
+        if not 1 <= sayfa_no <= len(belge):
+            raise ValueError(f"PDF {len(belge)} sayfa; {sayfa_no}. sayfa yok.")
+        sayfa = belge[sayfa_no - 1]
+        genislik_punto, yukseklik_punto = sayfa.get_size()
+        olcek = PDF_DPI / 72
+        # Çok büyük sayfalarda (afiş boyu PDF) çözünürlüğü sınırla.
+        en_buyuk = max(genislik_punto, yukseklik_punto) * olcek
+        if en_buyuk > PDF_EN_BUYUK_KENAR:
+            olcek *= PDF_EN_BUYUK_KENAR / en_buyuk
+        try:
+            goruntu = sayfa.render(scale=olcek).to_pil()
+        except Exception as hata:
+            raise ValueError(f"PDF sayfası görüntüye çevrilemedi:\n{hata}") from hata
+        return goruntu.convert("RGB")
+    finally:
+        belge.close()
+
+
 EN_BUYUK_INDIRME = 60 * 1024 * 1024  # 60 MB; poster kaynağı için fazlasıyla yeterli
 INDIRME_ZAMAN_ASIMI = 30
 
@@ -423,10 +482,13 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
                     f"Dosya çok büyük ({int(bildirilen) // 1048576} MB).\n"
                     f"En fazla {EN_BUYUK_INDIRME // 1048576} MB indirilebilir."
                 )
-            if tur and not tur.startswith("image/"):
+            # Yalnızca açıkça web sayfası olanları burada eliyoruz. Pek çok site
+            # (GitHub dahil) resim ve PDF'i "application/octet-stream" diye bildirir;
+            # bu yüzden asıl karar, aşağıda dosyanın içeriğine bakılarak veriliyor.
+            if tur.startswith("text/"):
                 raise ValueError(
-                    "Bu adres bir resim değil, sayfa döndürüyor.\n"
-                    "Resmin üzerine sağ tıklayıp “Resim adresini kopyala” deyin ve\n"
+                    "Bu adres bir resim ya da PDF değil, web sayfası döndürüyor.\n"
+                    "Görselin üzerine sağ tıklayıp “Resim adresini kopyala” deyin ve\n"
                     "kopyaladığınız adresi yapıştırın."
                 )
             veri = yanit.read(EN_BUYUK_INDIRME + 1)
@@ -444,18 +506,21 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
     if not veri:
         raise ValueError("Adres boş bir dosya döndürdü.")
 
-    # İçeriği gerçekten resim mi diye açarak sınıyoruz; uzantıya güvenmiyoruz.
+    # İçeriği gerçekten açarak sınıyoruz; uzantıya ya da sunucunun bildirdiğine güvenmiyoruz.
     from io import BytesIO
 
-    try:
-        with Image.open(BytesIO(veri)) as deneme:
-            deneme.verify()
-            bicim = (deneme.format or "img").lower()
-    except (OSError, ValueError) as hata:
-        raise ValueError(
-            "İnen dosya açılabilir bir resim değil.\n"
-            "Resmin doğrudan adresini kullandığınızdan emin olun."
-        ) from hata
+    if veri[:5] == b"%PDF-":
+        bicim = "pdf"
+    else:
+        try:
+            with Image.open(BytesIO(veri)) as deneme:
+                deneme.verify()
+                bicim = (deneme.format or "img").lower()
+        except (OSError, ValueError) as hata:
+            raise ValueError(
+                "İnen dosya açılabilir bir resim ya da PDF değil.\n"
+                "Görselin doğrudan adresini kullandığınızdan emin olun."
+            ) from hata
 
     ad = os.path.basename(urllib.parse.urlparse(baglanti).path) or f"linkten_resim.{bicim}"
     if "." not in ad:
@@ -618,12 +683,12 @@ class SunmesizBaskiApp:
         ttk.Label(ayarlar, text="--- 1. DOSYA SEÇİMİ ---", font=(self.font_ailesi, 11, "bold")).pack(
             pady=5, anchor=tk.W
         )
-        self.dosya_btn = ttk.Button(ayarlar, text="Bilgisayardan Resim Seç", command=self.resim_sec)
+        self.dosya_btn = ttk.Button(ayarlar, text="Bilgisayardan Dosya Seç (Resim / PDF)", command=self.resim_sec)
         self.dosya_btn.pack(fill=tk.X, pady=(5, 3))
         self.link_btn = ttk.Button(ayarlar, text="İnternetten Link ile Al", command=self.linkten_al)
         self.link_btn.pack(fill=tk.X, pady=(0, 5))
         self.dosya_lbl = ttk.Label(
-            ayarlar, text="Henüz resim seçilmedi...", wraplength=220, foreground="gray"
+            ayarlar, text="Henüz dosya seçilmedi...", wraplength=220, foreground="gray"
         )
         self.dosya_lbl.pack(anchor=tk.W, pady=2)
 
@@ -670,7 +735,7 @@ class SunmesizBaskiApp:
         self.sag_panel.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
         self.onizleme_label = ttk.Label(
-            self.sag_panel, text="Lütfen başlamak için bir resim seçin...", font=(self.font_ailesi, 12)
+            self.sag_panel, text="Lütfen başlamak için bir resim ya da PDF seçin...", font=(self.font_ailesi, 12)
         )
         self.onizleme_label.pack(expand=True)
 
@@ -750,11 +815,13 @@ class SunmesizBaskiApp:
     # ------------------------------------------------------------------ eylemler
     def resim_sec(self):
         dosya_tipleri = [
+            ("Resim ve PDF", "*.jpg *.jpeg *.png *.bmp *.webp *.tif *.tiff *.pdf"),
             ("Resim Dosyaları", "*.jpg *.jpeg *.png *.bmp *.webp *.tif *.tiff"),
+            ("PDF Dosyaları", "*.pdf"),
             ("Tüm Dosyalar", "*.*"),
         ]
         secilen_yol = filedialog.askopenfilename(
-            title="Bir Resim Dosyası Seçin", filetypes=dosya_tipleri
+            title="Bir Resim ya da PDF Seçin", filetypes=dosya_tipleri
         )
         if not secilen_yol:
             return
@@ -806,6 +873,81 @@ class SunmesizBaskiApp:
         threading.Thread(target=indir, daemon=True).start()
         self.root.after(120, yokla)
 
+    def _pdf_yukle(self, yol: str) -> Image.Image | None:
+        """PDF'i (gerekirse sayfa sordurarak) baskı çözünürlüğünde görüntüye çevirir."""
+        try:
+            toplam = pdf_sayfa_sayisi(yol)
+        except ImportError as hata:
+            messagebox.showerror("PDF desteği", str(hata))
+            return None
+        except ValueError as hata:
+            messagebox.showerror("Hata", str(hata))
+            return None
+
+        sayfa_no = 1
+        if toplam > 1:
+            sayfa_no = self._sayfa_penceresi(toplam)
+            if sayfa_no is None:
+                return None
+
+        onceki = self.durum_lbl["text"]
+        self.durum_lbl.config(text=f"PDF taranıyor ({PDF_DPI} DPI)...")
+        self.root.update_idletasks()
+        try:
+            return pdf_sayfasini_goruntuye_cevir(yol, sayfa_no)
+        except (ValueError, ImportError, MemoryError) as hata:
+            self.durum_lbl.config(text=onceki)
+            messagebox.showerror("Hata", str(hata))
+            return None
+
+    def _sayfa_penceresi(self, toplam: int) -> int | None:
+        """Çok sayfalı PDF'te hangi sayfanın poster olacağını sorar."""
+        pencere = tk.Toplevel(self.root)
+        pencere.title("PDF sayfası seçin")
+        pencere.transient(self.root)
+        pencere.resizable(False, False)
+        cerceve = ttk.Frame(pencere, padding=15)
+        cerceve.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(cerceve, text=f"Bu PDF {toplam} sayfadan oluşuyor.").pack(anchor=tk.W)
+        ttk.Label(
+            cerceve,
+            text="Postere dönüştürülecek sayfayı seçin:",
+            foreground="gray",
+        ).pack(anchor=tk.W, pady=(2, 8))
+
+        secim = ttk.Spinbox(cerceve, from_=1, to=toplam, width=8)
+        secim.set(1)
+        secim.pack(anchor=tk.W)
+
+        sonuc: dict[str, int | None] = {"sayfa": None}
+
+        def onayla(_olay=None):
+            try:
+                deger = int(secim.get())
+            except ValueError:
+                return
+            if 1 <= deger <= toplam:
+                sonuc["sayfa"] = deger
+                pencere.destroy()
+
+        dugmeler = ttk.Frame(cerceve)
+        dugmeler.pack(fill=tk.X, pady=(12, 0))
+        ttk.Button(dugmeler, text="İptal", command=pencere.destroy).pack(side=tk.RIGHT)
+        ttk.Button(dugmeler, text="Bu Sayfayı Kullan", command=onayla).pack(
+            side=tk.RIGHT, padx=(0, 8)
+        )
+
+        pencere.bind("<Return>", onayla)
+        pencere.bind("<Escape>", lambda _o: pencere.destroy())
+        pencere.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - pencere.winfo_width()) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - pencere.winfo_height()) // 3
+        pencere.geometry(f"+{max(0, x)}+{max(0, y)}")
+        pencere.grab_set()
+        self.root.wait_window(pencere)
+        return sonuc["sayfa"]
+
     def _link_penceresi(self) -> str | None:
         """Adres soran küçük pencere. Tk'nin hazır giriş penceresi İngilizce olduğu için
         kendi penceremizi kuruyoruz."""
@@ -816,10 +958,11 @@ class SunmesizBaskiApp:
         cerceve = ttk.Frame(pencere, padding=15)
         cerceve.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(cerceve, text="Resmin web adresini yapıştırın:").pack(anchor=tk.W)
+        ttk.Label(cerceve, text="Resmin ya da PDF'in web adresini yapıştırın:").pack(anchor=tk.W)
         ttk.Label(
             cerceve,
-            text="Tarayıcıda resme sağ tıklayıp “Resim adresini kopyala” diyebilirsiniz.",
+            text="Tarayıcıda görsele sağ tıklayıp “Resim adresini kopyala” diyebilirsiniz. "
+                 "PDF afişlerde adres çubuğundaki .pdf ile biten adresi kullanın.",
             foreground="gray",
             wraplength=430,
         ).pack(anchor=tk.W, pady=(2, 8))
@@ -858,13 +1001,18 @@ class SunmesizBaskiApp:
         return sonuc["adres"] or None
 
     def resmi_yukle(self, secilen_yol: str):
-        try:
-            img = Image.open(secilen_yol)
-            img.load()
-            img = ImageOps.exif_transpose(img)  # telefon fotoğraflarının yönünü düzeltir
-        except (OSError, ValueError) as hata:
-            messagebox.showerror("Hata", f"Resim açılamadı:\n{hata}")
-            return
+        if secilen_yol.lower().endswith(".pdf"):
+            img = self._pdf_yukle(secilen_yol)
+            if img is None:
+                return
+        else:
+            try:
+                img = Image.open(secilen_yol)
+                img.load()
+                img = ImageOps.exif_transpose(img)  # telefon fotoğraflarının yönünü düzeltir
+            except (OSError, ValueError) as hata:
+                messagebox.showerror("Hata", f"Resim açılamadı:\n{hata}")
+                return
 
         self.resim_yolu = secilen_yol
         self.orijinal_img = img

@@ -208,11 +208,26 @@ yine de yerinde kalır.</p>
 
 <h2 id="resim">3. Adım 1 — Resim seçme</h2>
 <p><code>Bilgisayardan Resim Seç</code> düğmesine basın. Açılan pencerede üstteki
-<b>Klasör</b> kutusundan resmin bulunduğu klasöre gidin, sonra dosyaya çift tıklayın
+<b>Klasör</b> kutusundan dosyanın bulunduğu klasöre gidin, sonra dosyaya çift tıklayın
 (ya da bir kez tıklayıp sağdaki <b>Aç</b> düğmesine basın). Vazgeçmek için
 <b>İptal</b>.</p>
-<p>Desteklenen biçimler: <code>.jpg .jpeg .png .bmp .webp .tif .tiff</code>.
+<p>Desteklenen biçimler: <code>.jpg .jpeg .png .bmp .webp .tif .tiff</code> ve <code>.pdf</code>.
 Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
+
+<h3>PDF afiş / tasarım kullanma</h3>
+<p>Afiş ve poster tasarımları çoğu zaman JPEG değil <b>PDF</b> olarak gelir. Programa
+PDF'i doğrudan verebilirsiniz: <code>Bilgisayardan Resim Seç</code> ile <code>.pdf</code>
+dosyasını seçin, gerisi resimle aynıdır.</p>
+<p>PDF <b>vektörel</b> olduğu için program sayfayı <b>300 DPI</b> baskı çözünürlüğünde
+tarar; büyütmede bozulma olmaz. Bu yüzden PDF kaynak, aynı tasarımın ekran görüntüsünü
+almaktan <u>her zaman daha kalitelidir</u>.</p>
+<p>PDF birden çok sayfa içeriyorsa hangi sayfanın postere dönüşeceği sorulur:</p>
+{sekil("02c_pdf_sayfa_secme.png", "PDF sayfa seçme penceresi", "çok sayfalı PDF'lerde çıkar", 760)}
+<div class="kutu kutu-bilgi">
+  <b>Tarama birkaç saniye sürebilir</b> — büyük afiş PDF'lerinde alt satırda
+  “PDF taranıyor (300 DPI)…” yazar. Şifreli PDF'ler açılamaz; şifreyi kaldırıp
+  yeniden deneyin.
+</div>
 
 <h3>İnternetteki bir resmi doğrudan kullanma</h3>
 <p>Resim bilgisayarınızda değil de bir web sayfasındaysa indirmenize gerek yok:
