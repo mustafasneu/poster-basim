@@ -1,0 +1,17 @@
+# Programın kendi kurduğu ortamlar (ilk açılışta yeniden oluşur)
+.venv/
+.venv-sistem/
+.venv_yedek/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# İşletim sistemi artıkları
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Programın ürettiği çıktılar
+Bolu_Parcalanmis_Resimler/
