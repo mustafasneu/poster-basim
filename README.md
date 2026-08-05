@@ -26,6 +26,16 @@ yazmaz.
   sayfalı PDF'te hangi sayfanın poster olacağı sorulur.
 - **Link ile alma** — görsel ya da PDF internetteyse indirmenize gerek yok; adresi
   yapıştırın, program indirip yükler.
+- **Yazıcı kenar boşluğu** — yazıcıların basamadığı payı hesaba katar; poster ölçüsü ve
+  DPI buna göre hesaplanır, parçalar kâğıtta gerçekten tutar.
+- **Kesim ve montaj yardımı** — her sayfada kesim çizgisi, köşe işaretleri, hizalama
+  artıları ve komşuluk etiketi; PDF'in başında montaj haritası sayfası.
+- **Baskı raporu** — üretimden önce ölçü, DPI, kâğıt sayısı, kesilecek uzunluk ve uyarılar;
+  çıktı klasörüne `baski_raporu.txt` olarak da yazılır.
+- **1:1 gerçek boyut önizleme** — posterin bir bölgesini kâğıttaki ölçüsünde gösterir,
+  ekran cetveliyle kalibre edilir.
+- **Renk yönetimi** — gömülü ICC profili sRGB'ye çevrilir; kâğıt türüne göre (mat, parlak,
+  fotokopi) renk ve kontrast telafisi.
 - **Tek ölçek garantisi** — kenar parçalarında eksik kalan bindirme payı beyazla
   tamamlanır, böylece bütün sayfalar birebir aynı ölçekle basılır ve parçalar tutar.
 - **Çakışma payı (bindirme)** — komşu sayfalarda tekrar basılan şerit sayesinde kesip

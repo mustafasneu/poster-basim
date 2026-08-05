@@ -727,6 +727,58 @@ IYI_DPI = 200  # bu değerin üstü baskıda net görünür
 KABUL_DPI = 120  # bunun altı yakından bakınca belirgin şekilde pikselli
 
 
+# Kâğıt telafisi: mat kâğıt mürekkebi emer, renk ve kontrast söner; parlak kâğıt
+# neredeyse ekrandaki gibi basar. (kontrast, doygunluk, parlaklık) çarpanları.
+KAGIT_TELAFISI = {
+    "Belirtme": (1.0, 1.0, 1.0),
+    "Mat kâğıt": (1.12, 1.18, 1.03),
+    "Parlak / fotoğraf kâğıdı": (1.0, 1.05, 1.0),
+    "Düz fotokopi kâğıdı": (1.18, 1.25, 1.06),
+}
+
+
+def srgb_yap(img: Image.Image) -> tuple[Image.Image, str | None]:
+    """Görselde gömülü ICC profili varsa sRGB'ye çevirir.
+
+    Adobe RGB ya da ProPhoto profilli bir görsel profilsiz basılırsa renkler
+    soluk ve kaymış çıkar. Dönüşüm bunu baştan önler.
+    """
+    profil = img.info.get("icc_profile")
+    if not profil:
+        return img, None
+    try:
+        from io import BytesIO  # noqa: PLC0415
+
+        from PIL import ImageCms  # noqa: PLC0415
+
+        kaynak = ImageCms.ImageCmsProfile(BytesIO(profil))
+        ad = ImageCms.getProfileDescription(kaynak).strip()
+        if "srgb" in ad.lower():
+            return img, ad
+        hedef = ImageCms.createProfile("sRGB")
+        cevrilmis = ImageCms.profileToProfile(img, kaynak, hedef, outputMode="RGB")
+        return (cevrilmis or img), ad
+    except Exception:  # ImageCms kendi hata tiplerini kullanır; profil bozuksa dokunma
+        return img, None
+
+
+def doygunluk_riski(img: Image.Image) -> float:
+    """Baskıda sönme riski taşıyan aşırı doygun piksellerin oranını kabaca ölçer.
+
+    Gerçek gamut denetimi CMYK profili ister; burada yalnızca "bu renkler mürekkeple
+    zor karşılanır" uyarısı için basit bir ölçüt kullanılıyor.
+    """
+    kucuk = img.convert("RGB")
+    kucuk.thumbnail((400, 400))
+    import statistics  # noqa: PLC0415
+
+    pikseller = list(kucuk.getdata())
+    if not pikseller:
+        return 0.0
+    riskli = sum(1 for r, g, b in pikseller if max(r, g, b) - min(r, g, b) > 200)
+    return riskli / len(pikseller)
+
+
 def otomatik_duzelt(img: Image.Image) -> Image.Image:
     """Seviye (kontrast) ve beyaz dengesini otomatik düzeltir.
 
@@ -777,28 +829,39 @@ def keskinlestir(img: Image.Image, yaricap: float, miktar: float, esik: float) -
     )
 
 
-def poster_olculeri_inc(sutun: int, satir: int, dikey: bool) -> tuple[float, float]:
-    """Seçilen matrisin inç cinsinden toplam poster ölçüsü."""
+def poster_olculeri_inc(
+    sutun: int, satir: int, dikey: bool, kenar_mm: float = 0.0
+) -> tuple[float, float]:
+    """Seçilen matrisin inç cinsinden poster ölçüsü.
+
+    Yazıcının basamadığı kenar payı posterden düşülür; yoksa hesaplanan ölçü
+    gerçekte elde edilenden büyük çıkar.
+    """
     kisa, uzun = A4_INC
     sayfa_w, sayfa_h = (kisa, uzun) if dikey else (uzun, kisa)
-    return sutun * sayfa_w, satir * sayfa_h
+    kenar_inc = kenar_mm / 25.4
+    return sutun * max(0.1, sayfa_w - 2 * kenar_inc), satir * max(0.1, sayfa_h - 2 * kenar_inc)
 
 
-def baski_cozunurlugu(img: Image.Image, sutun: int, satir: int, dikey: bool) -> float:
+def baski_cozunurlugu(
+    img: Image.Image, sutun: int, satir: int, dikey: bool, kenar_mm: float = 0.0
+) -> float:
     """Görselin bu matriste basıldığında ulaşacağı gerçek DPI değeri."""
-    genislik_inc, yukseklik_inc = poster_olculeri_inc(sutun, satir, dikey)
+    genislik_inc, yukseklik_inc = poster_olculeri_inc(sutun, satir, dikey, kenar_mm)
     if genislik_inc <= 0 or yukseklik_inc <= 0:
         return 0.0
     return min(img.width / genislik_inc, img.height / yukseklik_inc)
 
 
-def akilli_buyut(img: Image.Image, hedef_dpi: int, sutun: int, satir: int, dikey: bool):
+def akilli_buyut(
+    img: Image.Image, hedef_dpi: int, sutun: int, satir: int, dikey: bool, kenar_mm: float = 0.0
+):
     """Görseli hedef DPI'a ulaşacak şekilde büyütür (Lanczos + hafif keskinleştirme).
 
     Var olmayan detayı üretmez; pikselleri blok blok değil yumuşak geçişli gösterir.
     Aşırı büyütme kalite kazandırmadığı için en fazla 4 katla sınırlıdır.
     """
-    mevcut = baski_cozunurlugu(img, sutun, satir, dikey)
+    mevcut = baski_cozunurlugu(img, sutun, satir, dikey, kenar_mm)
     if mevcut <= 0 or mevcut >= hedef_dpi:
         return img, 1.0
     kat = min(hedef_dpi / mevcut, 4.0)
@@ -974,6 +1037,134 @@ ONAYARLAR = {
 }
 
 
+# --------------------------------------------------------- kesim ve montaj işaretleri
+# PDF metinlerinde ASCII kullanılır: ReportLab'ın gömülü yazı tipleri "ı, ş, ğ"
+# harflerini basamaz ve bu harfler çıktıda kaybolur.
+def kesim_isaretleri_ciz(
+    pdf_canvas, ciz_x, ciz_y, ciz_w, ciz_h, cakisma_pt, satir, sutun, toplam_satir, toplam_sutun
+):
+    """Sayfaya kesim çizgileri, köşe işaretleri, hizalama hedefleri ve komşuluk etiketi çizer.
+
+    Kesim çizgisi, bindirme payının bittiği yerdedir: kullanıcı oradan keserse
+    komşu sayfayla tam olarak örtüşen bir kenar elde eder.
+    """
+    sol_pay = cakisma_pt if sutun > 0 else 0
+    sag_pay = cakisma_pt if sutun < toplam_sutun - 1 else 0
+    alt_pay = cakisma_pt if satir < toplam_satir - 1 else 0
+    ust_pay = cakisma_pt if satir > 0 else 0
+
+    kesim_sol = ciz_x + sol_pay
+    kesim_sag = ciz_x + ciz_w - sag_pay
+    kesim_alt = ciz_y + alt_pay
+    kesim_ust = ciz_y + ciz_h - ust_pay
+
+    # Kesim çizgisi: ince, kesikli, açık gri — baskıda göze batmaz, makasa yol gösterir.
+    pdf_canvas.saveState()
+    pdf_canvas.setStrokeColorRGB(0.55, 0.55, 0.55)
+    pdf_canvas.setLineWidth(0.4)
+    pdf_canvas.setDash(3, 3)
+    pdf_canvas.rect(kesim_sol, kesim_alt, kesim_sag - kesim_sol, kesim_ust - kesim_alt)
+    pdf_canvas.setDash()
+
+    # Köşe işaretleri: kesim köşelerini kâğıdın kenarına taşıyan kısa tam çizgiler.
+    uzunluk = 12
+    pdf_canvas.setStrokeColorRGB(0.2, 0.2, 0.2)
+    pdf_canvas.setLineWidth(0.6)
+    for x in (kesim_sol, kesim_sag):
+        for y in (kesim_alt, kesim_ust):
+            yon_x = -1 if x == kesim_sol else 1
+            yon_y = -1 if y == kesim_alt else 1
+            pdf_canvas.line(x, y, x + yon_x * uzunluk, y)
+            pdf_canvas.line(x, y, x, y + yon_y * uzunluk)
+
+    # Hizalama hedefleri: bindirme şeridinin ortasında artı işaretleri. İki sayfa
+    # üst üste getirildiğinde bu artılar çakışır; hizalama gözle yapılabilir hale gelir.
+    if cakisma_pt > 2:
+        pdf_canvas.setStrokeColorRGB(0.85, 0.2, 0.2)
+        pdf_canvas.setLineWidth(0.5)
+        art = 5
+        hedefler = []
+        if sag_pay:
+            hedefler.append((kesim_sag + cakisma_pt / 2, (kesim_alt + kesim_ust) / 2))
+        if sol_pay:
+            hedefler.append((kesim_sol - cakisma_pt / 2, (kesim_alt + kesim_ust) / 2))
+        if alt_pay:
+            hedefler.append(((kesim_sol + kesim_sag) / 2, kesim_alt - cakisma_pt / 2))
+        if ust_pay:
+            hedefler.append(((kesim_sol + kesim_sag) / 2, kesim_ust + cakisma_pt / 2))
+        for hx, hy in hedefler:
+            pdf_canvas.line(hx - art, hy, hx + art, hy)
+            pdf_canvas.line(hx, hy - art, hx, hy + art)
+
+    # Komşuluk etiketi: hangi parça olduğu ve sağına/altına hangisinin geleceği.
+    komsular = []
+    if sutun < toplam_sutun - 1:
+        komsular.append(f"saginda {satir + 1}-{sutun + 2}")
+    if satir < toplam_satir - 1:
+        komsular.append(f"altinda {satir + 2}-{sutun + 1}")
+    etiket = f"Parca {satir + 1}-{sutun + 1}  (satir {satir + 1} / sutun {sutun + 1})"
+    if komsular:
+        etiket += " · " + ", ".join(komsular)
+    # Etiket kâğıdın en altına, beyaz zemin üzerine yazılır: görselin üstüne binerse
+    # koyu alanlarda okunmaz.
+    pdf_canvas.setFont("Helvetica", 7)
+    genislik = pdf_canvas.stringWidth(etiket, "Helvetica", 7)
+    pdf_canvas.setFillColorRGB(1, 1, 1)
+    pdf_canvas.rect(2, 2, genislik + 8, 11, stroke=0, fill=1)
+    pdf_canvas.setFillColorRGB(0.35, 0.35, 0.35)
+    pdf_canvas.drawString(6, 5, etiket)
+    pdf_canvas.restoreState()
+
+
+def montaj_haritasi_ciz(pdf_canvas, sayfa_w, sayfa_h, toplam_satir, toplam_sutun, olcu_metni):
+    """PDF'in ilk sayfasına, parçaların nereye geleceğini gösteren harita basar."""
+    pdf_canvas.saveState()
+    pdf_canvas.setFillColorRGB(0.1, 0.1, 0.1)
+    pdf_canvas.setFont("Helvetica-Bold", 16)
+    pdf_canvas.drawString(50, sayfa_h - 60, "MONTAJ HARITASI")
+    pdf_canvas.setFont("Helvetica", 9)
+    pdf_canvas.drawString(
+        50, sayfa_h - 78, f"{toplam_satir} satir x {toplam_sutun} sutun = "
+        f"{toplam_satir * toplam_sutun} sayfa   |   yaklasik {olcu_metni}"
+    )
+
+    # Harita alanı: sayfa oranını koruyan bir ızgara.
+    ust_bosluk, yan_bosluk = 110, 50
+    alan_w = sayfa_w - 2 * yan_bosluk
+    alan_h = sayfa_h - ust_bosluk - 90
+    hucre = min(alan_w / toplam_sutun, alan_h / toplam_satir)
+    izgara_w, izgara_h = hucre * toplam_sutun, hucre * toplam_satir
+    baslangic_x = (sayfa_w - izgara_w) / 2
+    baslangic_y = sayfa_h - ust_bosluk - izgara_h
+
+    pdf_canvas.setFont("Helvetica-Bold", 11)
+    for satir in range(toplam_satir):
+        for sutun in range(toplam_sutun):
+            x = baslangic_x + sutun * hucre
+            y = baslangic_y + (toplam_satir - 1 - satir) * hucre
+            pdf_canvas.setStrokeColorRGB(0.3, 0.3, 0.3)
+            pdf_canvas.setFillColorRGB(0.97, 0.97, 0.97)
+            pdf_canvas.rect(x, y, hucre, hucre, stroke=1, fill=1)
+            pdf_canvas.setFillColorRGB(0.1, 0.1, 0.1)
+            pdf_canvas.drawCentredString(
+                x + hucre / 2, y + hucre / 2 - 4, f"{satir + 1}-{sutun + 1}"
+            )
+
+    pdf_canvas.setFont("Helvetica", 9)
+    pdf_canvas.setFillColorRGB(0.25, 0.25, 0.25)
+    satirlar = [
+        "1. Sayfalari %100 / Gercek Boyut olcegiyle yazdirin (Sayfaya Sigdir KAPALI).",
+        "2. Her sayfayi kesikli cizgiden kesin; koselerdeki isaretler kesim yerini gosterir.",
+        "3. Yukaridaki haritaya gore diziniz: 1-1 sol ust kosedir.",
+        "4. Kirmizi arti isaretlerini ust uste getirerek yapistirin.",
+        "5. Bu harita sayfasini yazdirmaniz sart degildir; yalnizca yol gostericidir.",
+    ]
+    for sira, metin in enumerate(satirlar):
+        pdf_canvas.drawString(50, 78 - sira * 13, metin)
+    pdf_canvas.restoreState()
+    pdf_canvas.showPage()
+
+
 def dogal_anahtar(metin: str):
     """'resim2' < 'resim10' olacak şekilde sıralama anahtarı (sözlük sırası yanıltır)."""
     import re
@@ -1053,6 +1244,7 @@ class SunmesizBaskiApp:
         self._indirme_dizini: str | None = None  # linkten inen resimler için geçici klasör
         self.mod = tk.StringVar(value="poster")
         self.dizme_dosyalari: list[str] = []
+        self.kaynak_profili: str | None = None
 
         self.arayuz_tasarla()
 
@@ -1066,6 +1258,15 @@ class SunmesizBaskiApp:
         # kalıyordu. Önce paketlenince yerleri her sistemde garanti altında olur.
         eylem = ttk.Frame(sol_panel)
         eylem.pack(side=tk.BOTTOM, fill=tk.X)
+
+        denetim = ttk.Frame(eylem)
+        denetim.pack(fill=tk.X, pady=(6, 0))
+        ttk.Button(denetim, text="Baskı Raporu", command=self.baski_raporunu_goster).pack(
+            side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3)
+        )
+        ttk.Button(denetim, text="1:1 Önizleme", command=self.gercek_boyut_onizleme).pack(
+            side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0)
+        )
 
         self.kaydet_btn = ttk.Button(
             eylem,
@@ -1148,6 +1349,30 @@ class SunmesizBaskiApp:
         for kutu in (self.sutun_spin, self.satir_spin):
             kutu.bind("<KeyRelease>", self.cozunurlugu_degerlendir)
 
+        ttk.Label(ayarlar, text="Yazıcı Kenar Boşluğu (mm):").pack(anchor=tk.W)
+        self.kenar_spin = ttk.Spinbox(
+            ayarlar, from_=0, to=20, increment=1, width=10,
+            command=self.cozunurlugu_degerlendir,
+        )
+        self.kenar_spin.set(5)
+        self.kenar_spin.pack(pady=5, anchor=tk.W)
+        self.kenar_spin.bind("<KeyRelease>", self.cozunurlugu_degerlendir)
+        ttk.Label(
+            ayarlar,
+            text="Yazıcınızın basamadığı kenar payı. Kenarlıksız basabiliyorsa 0 yapın.",
+            wraplength=220,
+            foreground="gray",
+        ).pack(anchor=tk.W, pady=(0, 6))
+
+        self.isaret_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            ayarlar, text="Kesim ve hizalama işaretleri ekle", variable=self.isaret_var
+        ).pack(anchor=tk.W)
+        self.harita_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            ayarlar, text="PDF'e montaj haritası sayfası ekle", variable=self.harita_var
+        ).pack(anchor=tk.W, pady=(0, 6))
+
         ttk.Label(ayarlar, text="Çakışma Payı (Piksel Bindirme):").pack(anchor=tk.W)
         self.cakisma_spin = ttk.Spinbox(ayarlar, from_=0, to=100, width=10)
         self.cakisma_spin.set(15)
@@ -1190,6 +1415,14 @@ class SunmesizBaskiApp:
         self.ai_durum_lbl = ttk.Label(ayarlar, text="", wraplength=220, foreground="gray")
         self.ai_durum_lbl.pack(anchor=tk.W, pady=(0, 8))
         self.ai_durumunu_yaz()
+
+        ttk.Label(ayarlar, text="Kâğıt Türü (renk telafisi):").pack(anchor=tk.W)
+        self.kagit_combo = ttk.Combobox(
+            ayarlar, values=list(KAGIT_TELAFISI), state="readonly"
+        )
+        self.kagit_combo.set("Belirtme")
+        self.kagit_combo.pack(fill=tk.X, pady=5)
+        self.kagit_combo.bind("<<ComboboxSelected>>", self.filtre_planla)
 
         ttk.Label(ayarlar, text="Gürültü Azaltma:").pack(anchor=tk.W)
         self.gurultu_combo = ttk.Combobox(
@@ -1781,6 +2014,8 @@ class SunmesizBaskiApp:
                 messagebox.showerror("Hata", str(hata))
                 return
 
+        img, profil_adi = srgb_yap(img)
+        self.kaynak_profili = profil_adi
         self.resim_yolu = secilen_yol
         self.orijinal_img = img
         self.onizleme_kaynak = img.copy()
@@ -2036,8 +2271,9 @@ class SunmesizBaskiApp:
         except (ValueError, tk.TclError):
             return
         dikey = "Dikey" in self.yon_combo.get()
-        dpi = baski_cozunurlugu(self.orijinal_img, sutun, satir, dikey)
-        en, boy = poster_olculeri_inc(sutun, satir, dikey)
+        kenar = self._kenar_boslugu_mm()
+        dpi = baski_cozunurlugu(self.orijinal_img, sutun, satir, dikey, kenar)
+        en, boy = poster_olculeri_inc(sutun, satir, dikey, kenar)
         olcu = f"{en * 2.54:.0f} × {boy * 2.54:.0f} cm"
 
         if dpi >= IYI_DPI:
@@ -2060,6 +2296,248 @@ class SunmesizBaskiApp:
                 foreground="#b91c1c",
             )
 
+    # ------------------------------------------------------- baskı raporu ve 1:1 önizleme
+    def baski_raporu_metni(self) -> str:
+        """Üretimden önce her şeyi tek ekranda özetleyen rapor."""
+        if self.orijinal_img is None:
+            return "Henüz bir görsel açılmadı."
+        try:
+            sutun, satir = int(self.sutun_spin.get()), int(self.satir_spin.get())
+            cakisma = int(self.cakisma_spin.get())
+        except (ValueError, tk.TclError):
+            return "Sütun, satır ve çakışma payı sayı olmalı."
+
+        dikey = "Dikey" in self.yon_combo.get()
+        kenar = self._kenar_boslugu_mm()
+        en_cm, boy_cm = self.poster_olcusu_cm()
+        dpi = baski_cozunurlugu(self.orijinal_img, sutun, satir, dikey, kenar)
+        sayfa = sutun * satir
+
+        # Kesim uzunluğu: her sayfanın kesilecek kenarları (dış kenarlar kesilmez).
+        sayfa_en = en_cm / sutun
+        sayfa_boy = boy_cm / satir
+        kesim_cm = 0.0
+        for i in range(satir):
+            for j in range(sutun):
+                kesim_cm += (sayfa_boy if j < sutun - 1 else 0) + (sayfa_en if i < satir - 1 else 0)
+
+        if dpi >= IYI_DPI:
+            deger = "yeterli"
+        elif dpi >= KABUL_DPI:
+            deger = "kabul edilebilir"
+        else:
+            deger = "DÜŞÜK"
+
+        satirlar = [
+            "BASKI RAPORU",
+            "=" * 46,
+            "",
+            "KAYNAK",
+            f"  Dosya           : {os.path.basename(self.resim_yolu or '-')}",
+            f"  Çözünürlük      : {self.orijinal_img.width} x {self.orijinal_img.height} piksel",
+            "",
+            "POSTER",
+            f"  Matris          : {sutun} sütun x {satir} satır = {sayfa} sayfa A4",
+            f"  Sayfa yönü      : {self.yon_combo.get()}",
+            f"  Yazıcı kenarı   : {kenar:.0f} mm (basılamayan pay)",
+            f"  Poster ölçüsü   : {en_cm:.1f} x {boy_cm:.1f} cm",
+            f"  Tek sayfa alanı : {sayfa_en:.1f} x {sayfa_boy:.1f} cm",
+            "",
+            "BASKI KALİTESİ",
+            f"  Baskı çözünürlüğü: {dpi:.0f} DPI ({deger})",
+            f"  Çakışma payı     : {cakisma} piksel",
+            f"  Kesim işaretleri : {'var' if self.isaret_var.get() else 'yok'}",
+            f"  Montaj haritası  : {'var' if self.harita_var.get() else 'yok'}",
+            f"  Kesilecek uzunluk: yaklaşık {kesim_cm / 100:.1f} metre",
+            "",
+            "İYİLEŞTİRME",
+            f"  Hazır ayar      : {self.onayar_combo.get()}",
+            f"  Otomatik düzelt : {'açık' if self.otomatik_var.get() else 'kapalı'}",
+            f"  Gürültü azaltma : {self.gurultu_combo.get()}",
+            f"  Keskinleştirme  : yarıçap {self.yaricap_slider.get():.1f}, "
+            f"miktar %{self.miktar_slider.get():.0f}, eşik {self.esik_slider.get():.0f}",
+            f"  Akıllı büyütme  : {'açık' if self.buyut_var.get() else 'kapalı'}",
+            f"  Kâğıt telafisi  : {self.kagit_combo.get()}",
+        ]
+
+        uyarilar = []
+        if dpi < KABUL_DPI:
+            uyarilar.append(
+                f"Baskı {dpi:.0f} DPI — yakından bakınca pikselli görünecek. "
+                "Sayfa sayısını azaltmayı ya da daha büyük bir görsel kullanmayı düşünün."
+            )
+        if kenar == 0:
+            uyarilar.append(
+                "Kenar boşluğu 0 mm. Yazıcınız kenarlıksız basamıyorsa her sayfadan "
+                "birkaç milimetre kırpılır ve parçalar tam tutmaz."
+            )
+        if cakisma == 0 and sayfa > 1:
+            uyarilar.append(
+                "Çakışma payı yok. Kesip yapıştırırken hiç tolerans kalmaz; 15-30 piksel önerilir."
+            )
+        if sayfa > 12:
+            uyarilar.append(f"{sayfa} sayfa basılacak; kâğıt ve mürekkep tüketimi yüksek olacak.")
+        if uyarilar:
+            satirlar += ["", "UYARILAR"]
+            satirlar += [f"  ! {u}" for u in uyarilar]
+        satirlar += [
+            "",
+            "YAZDIRMA",
+            "  Ölçek: %100 / Gerçek Boyut  (Sayfaya Sığdır KAPALI olmalı)",
+            "  Kâğıt: A4",
+        ]
+        return "\n".join(satirlar)
+
+    def baski_raporunu_goster(self):
+        self.cozunurlugu_degerlendir()  # panel uyarısı raporla aynı değerleri göstersin
+        rapor = self.baski_raporu_metni()
+        pencere = tk.Toplevel(self.root)
+        pencere.title("Baskı Raporu")
+        pencere.transient(self.root)
+        cerceve = ttk.Frame(pencere, padding=12)
+        cerceve.pack(fill=tk.BOTH, expand=True)
+        kutu = tk.Text(cerceve, width=52, height=28, wrap=tk.WORD, font=("monospace", 9))
+        kutu.insert("1.0", rapor)
+        kutu.config(state=tk.DISABLED)
+        kutu.pack(fill=tk.BOTH, expand=True)
+        ttk.Button(cerceve, text="Kapat", command=pencere.destroy).pack(pady=(10, 0))
+        pencere.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - pencere.winfo_width()) // 2
+        pencere.geometry(f"+{max(0, x)}+{self.root.winfo_rooty() + 40}")
+
+    def gercek_boyut_onizleme(self):
+        """Görselin küçük bir bölgesini gerçek baskı ölçeğinde gösterir."""
+        if self.orijinal_img is None:
+            messagebox.showinfo("Gerçek Boyut Önizleme", "Önce bir görsel açın.")
+            return
+        try:
+            sutun, satir = int(self.sutun_spin.get()), int(self.satir_spin.get())
+        except (ValueError, tk.TclError):
+            return
+        dikey = "Dikey" in self.yon_combo.get()
+        baski_dpi = baski_cozunurlugu(
+            self.orijinal_img, sutun, satir, dikey, self._kenar_boslugu_mm()
+        )
+        if baski_dpi <= 0:
+            return
+
+        pencere = tk.Toplevel(self.root)
+        pencere.title("Gerçek Boyut Önizleme (1:1)")
+        pencere.transient(self.root)
+        cerceve = ttk.Frame(pencere, padding=10)
+        cerceve.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            cerceve,
+            text="Bu pencere, posterin küçük bir bölgesini kâğıttaki gerçek ölçüsünde gösterir.\n"
+            "Sürükleyerek gezinebilirsiniz. Ekranınızdaki cetvel ölçüsü tutmuyorsa "
+            "aşağıdaki ekran DPI değerini düzeltin.",
+            wraplength=560,
+            foreground="gray",
+        ).pack(anchor=tk.W, pady=(0, 8))
+
+        # Ekranın gerçek DPI'ı: Tk bunu bildirir ama bazı sistemlerde yanlış olur;
+        # kullanıcı cetvelle kontrol edip düzeltebilsin diye ayar bırakıldı.
+        ekran_dpi = tk.DoubleVar(value=round(self.root.winfo_fpixels("1i"), 1))
+        ekran_w = min(760, int(self.root.winfo_screenwidth() * 0.7))
+        ekran_h = min(460, int(self.root.winfo_screenheight() * 0.5))
+        tuval = tk.Canvas(cerceve, width=ekran_w, height=ekran_h, background="#e5e5e5")
+        tuval.pack()
+
+        durum = {"x": self.orijinal_img.width // 2, "y": self.orijinal_img.height // 2}
+        tutamak = {"img": None}
+
+        def cetvel_ciz():
+            """Üst kenara santimetre cetveli çizer: gerçek bir cetvelle karşılaştırıp
+            ekran DPI'ını doğrulamak için."""
+            piksel_cm = ekran_dpi.get() / 2.54
+            if piksel_cm <= 4:
+                return
+            # Şerit düz beyaz olmalı: yarı saydam bırakılınca koyu görsellerde
+            # çizgiler ve rakamlar okunmuyor.
+            tuval.create_rectangle(0, 0, ekran_w, 26, fill="#ffffff", outline="#bbbbbb")
+            cm = 0
+            while cm * piksel_cm < ekran_w:
+                x = cm * piksel_cm
+                tuval.create_line(x, 0, x, 14, fill="#111111", width=1)
+                if cm:
+                    tuval.create_text(x + 2, 18, text=str(cm), anchor="w", font=("", 7))
+                yarim = x + piksel_cm / 2
+                if yarim < ekran_w:
+                    tuval.create_line(yarim, 0, yarim, 8, fill="#444444")
+                cm += 1
+            tuval.create_text(
+                ekran_w - 4, 18, text="cm", anchor="e", font=("", 7), fill="#444444"
+            )
+
+        def ciz(*_):
+            oran = ekran_dpi.get() / baski_dpi  # 1 görüntü pikseli kaç ekran pikseli
+            if oran <= 0:
+                return
+            # Yalnızca görünen bölge kırpılır; dev görüntülerde bellek şişmesin.
+            gorunen_w = max(8, int(ekran_w / oran))
+            gorunen_h = max(8, int(ekran_h / oran))
+            sol = max(0, min(durum["x"] - gorunen_w // 2, self.orijinal_img.width - gorunen_w))
+            ust = max(0, min(durum["y"] - gorunen_h // 2, self.orijinal_img.height - gorunen_h))
+            parca = self.orijinal_img.crop((sol, ust, sol + gorunen_w, ust + gorunen_h))
+            parca = self.keskinlestirmeyi_uygula(self.renk_ve_gurultu(parca))
+            parca = parca.resize(
+                (ekran_w, ekran_h),
+                Image.Resampling.LANCZOS if oran < 1 else Image.Resampling.NEAREST,
+            )
+            tutamak["img"] = ImageTk.PhotoImage(parca)
+            tuval.delete("all")
+            tuval.create_image(0, 0, anchor="nw", image=tutamak["img"])
+            cetvel_ciz()
+            olcu_cm = ekran_w / ekran_dpi.get() * 2.54
+            bilgi.config(
+                text=f"Baskı çözünürlüğü {baski_dpi:.0f} DPI · gösterilen genişlik "
+                f"yaklaşık {olcu_cm:.1f} cm"
+            )
+
+        bilgi = ttk.Label(cerceve, text="", foreground="gray")
+        bilgi.pack(anchor=tk.W, pady=(6, 0))
+
+        surukle = {"x": 0, "y": 0}
+
+        def basildi(olay):
+            surukle.update(x=olay.x, y=olay.y)
+
+        def suruklendi(olay):
+            oran = ekran_dpi.get() / baski_dpi
+            durum["x"] -= int((olay.x - surukle["x"]) / max(oran, 0.01))
+            durum["y"] -= int((olay.y - surukle["y"]) / max(oran, 0.01))
+            surukle.update(x=olay.x, y=olay.y)
+            ciz()
+
+        tuval.bind("<Button-1>", basildi)
+        tuval.bind("<B1-Motion>", suruklendi)
+
+        alt = ttk.Frame(cerceve)
+        alt.pack(fill=tk.X, pady=(10, 0))
+        ttk.Label(alt, text="Ekran DPI:").pack(side=tk.LEFT)
+        ttk.Spinbox(
+            alt, from_=60, to=400, width=6, textvariable=ekran_dpi, command=ciz
+        ).pack(side=tk.LEFT, padx=6)
+        ttk.Button(alt, text="Kapat", command=pencere.destroy).pack(side=tk.RIGHT)
+        ciz()
+
+    def _kenar_boslugu_mm(self) -> float:
+        try:
+            return max(0.0, min(float(self.kenar_spin.get()), 20.0))
+        except (ValueError, tk.TclError):
+            return 5.0
+
+    def poster_olcusu_cm(self) -> tuple[float, float]:
+        """Seçili ayarlarla ortaya çıkacak posterin santimetre ölçüsü."""
+        try:
+            sutun, satir = int(self.sutun_spin.get()), int(self.satir_spin.get())
+        except (ValueError, tk.TclError):
+            sutun, satir = 1, 1
+        dikey = "Dikey" in self.yon_combo.get()
+        en, boy = poster_olculeri_inc(sutun, satir, dikey, self._kenar_boslugu_mm())
+        return en * 2.54, boy * 2.54
+
     def _gurultu_seviyesi(self) -> int:
         return {"Kapalı": 0, "Hafif": 1, "Orta": 2, "Güçlü": 3}.get(self.gurultu_combo.get(), 0)
 
@@ -2068,9 +2546,11 @@ class SunmesizBaskiApp:
         if self.otomatik_var.get():
             img = otomatik_duzelt(img)
         img = gurultu_azalt(img, self._gurultu_seviyesi())
-        img = ImageEnhance.Contrast(img).enhance(self.kontrast_slider.get())
-        img = ImageEnhance.Color(img).enhance(self.renk_slider.get())
-        return ImageEnhance.Brightness(img).enhance(self.parlaklik_slider.get())
+        # Kâğıt telafisi, kullanıcı sürgülerinin üstüne çarpan olarak biner.
+        k_kontrast, k_renk, k_parlak = KAGIT_TELAFISI.get(self.kagit_combo.get(), (1.0, 1.0, 1.0))
+        img = ImageEnhance.Contrast(img).enhance(self.kontrast_slider.get() * k_kontrast)
+        img = ImageEnhance.Color(img).enhance(self.renk_slider.get() * k_renk)
+        return ImageEnhance.Brightness(img).enhance(self.parlaklik_slider.get() * k_parlak)
 
     def keskinlestirmeyi_uygula(self, img: Image.Image, olcek: float = 1.0) -> Image.Image:
         """Unsharp mask uygular. olcek, önizleme küçültmesini telafi eder."""
@@ -2163,11 +2643,16 @@ class SunmesizBaskiApp:
 
         dikey = "Dikey" in self.yon_combo.get()
         if self.buyut_var.get():
-            onceki_dpi = baski_cozunurlugu(islenen, sutun_sayisi, satir_sayisi, dikey)
+            kenar_mm = self._kenar_boslugu_mm()
+            onceki_dpi = baski_cozunurlugu(
+                islenen, sutun_sayisi, satir_sayisi, dikey, kenar_mm
+            )
             if onceki_dpi < KABUL_DPI:
                 self.durum_lbl.config(text="Düşük çözünürlük: akıllı büyütme uygulanıyor...")
                 self.root.update_idletasks()
-                islenen, kat = akilli_buyut(islenen, IYI_DPI, sutun_sayisi, satir_sayisi, dikey)
+                islenen, kat = akilli_buyut(
+                    islenen, IYI_DPI, sutun_sayisi, satir_sayisi, dikey, kenar_mm
+                )
                 if kat > 1.0:
                     print(f"[büyütme] {kat:.2f} kat -> {islenen.width}x{islenen.height}", flush=True)
 
@@ -2182,11 +2667,19 @@ class SunmesizBaskiApp:
         sayfa_w, sayfa_h = sayfa_boyutu
         pdf_canvas = canvas.Canvas(pdf_yolu, pagesize=sayfa_boyutu)
 
-        # Hedef matris, sayfa oranını birebir korur; resim bu alana oranı bozulmadan
-        # oturtulur, artan yerler beyaz kalır (baskıda mürekkep yemesin diye).
-        olcek = max(1.0, min(islenen.width / (sayfa_w * sutun_sayisi), 4.0))
-        hedef_w = int(sayfa_w * sutun_sayisi * olcek)
-        hedef_h = int(sayfa_h * satir_sayisi * olcek)
+        # Yazıcıların çoğu kâğıdın en kenarına basamaz. Bu paya saygı gösterilmezse
+        # her sayfadan birkaç milimetre kırpılır ve parçalar birleştiğinde tutmaz.
+        kenar_pt = self._kenar_boslugu_mm() * 72 / 25.4
+        kullanilabilir_w = sayfa_w - 2 * kenar_pt
+        kullanilabilir_h = sayfa_h - 2 * kenar_pt
+        if kullanilabilir_w <= 0 or kullanilabilir_h <= 0:
+            raise ValueError("Yazıcı kenar boşluğu sayfadan büyük; değeri küçültün.")
+
+        # Hedef matris, basılabilir alanın oranını birebir korur; resim bu alana oranı
+        # bozulmadan oturtulur, artan yerler beyaz kalır.
+        olcek = max(1.0, min(islenen.width / (kullanilabilir_w * sutun_sayisi), 4.0))
+        hedef_w = int(kullanilabilir_w * sutun_sayisi * olcek)
+        hedef_h = int(kullanilabilir_h * satir_sayisi * olcek)
         img_oranti_korumali = ImageOps.pad(
             islenen,
             (hedef_w, hedef_h),
@@ -2204,11 +2697,19 @@ class SunmesizBaskiApp:
         # oluşur ve parçalar yapıştırılırken tutmaz.
         kare_genislik = parca_genislik + 2 * cakisma
         kare_yukseklik = parca_yukseklik + 2 * cakisma
-        pdf_olcek = min(sayfa_w / kare_genislik, sayfa_h / kare_yukseklik)
+        pdf_olcek = min(kullanilabilir_w / kare_genislik, kullanilabilir_h / kare_yukseklik)
         ciz_w = kare_genislik * pdf_olcek
         ciz_h = kare_yukseklik * pdf_olcek
-        ciz_x = (sayfa_w - ciz_w) / 2
-        ciz_y = (sayfa_h - ciz_h) / 2
+        ciz_x = kenar_pt + (kullanilabilir_w - ciz_w) / 2
+        ciz_y = kenar_pt + (kullanilabilir_h - ciz_h) / 2
+        cakisma_pt = cakisma * pdf_olcek  # işaretler için: bindirme şeridinin PDF ölçüsü
+
+        if self.harita_var.get():
+            en_cm, boy_cm = self.poster_olcusu_cm()
+            montaj_haritasi_ciz(
+                pdf_canvas, sayfa_w, sayfa_h, satir_sayisi, sutun_sayisi,
+                f"{en_cm:.0f} x {boy_cm:.0f} cm",
+            )
 
         sayac = 0
         for i in range(satir_sayisi):
@@ -2232,9 +2733,21 @@ class SunmesizBaskiApp:
                 parca.save(t_yolu, "JPEG", quality=95, subsampling=0, dpi=(300, 300))
 
                 pdf_canvas.drawImage(t_yolu, ciz_x, ciz_y, width=ciz_w, height=ciz_h)
+                if self.isaret_var.get():
+                    kesim_isaretleri_ciz(
+                        pdf_canvas, ciz_x, ciz_y, ciz_w, ciz_h, cakisma_pt,
+                        i, j, satir_sayisi, sutun_sayisi,
+                    )
                 pdf_canvas.showPage()
 
         pdf_canvas.save()
+        try:  # rapor çıktının yanında dursun; sonradan "hangi ayarla basmıştım" sorusu kalmasın
+            with open(
+                os.path.join(cikis_klasoru, "baski_raporu.txt"), "w", encoding="utf-8"
+            ) as rapor_dosyasi:
+                rapor_dosyasi.write(self.baski_raporu_metni())
+        except OSError:
+            pass
         self.son_cikis_klasoru = cikis_klasoru
         self.klasor_btn.config(state=tk.NORMAL)
         # Masaüstü yazılamazsa çıktı başka klasöre düşebilir; nereye gittiği yazsın.

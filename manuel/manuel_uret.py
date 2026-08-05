@@ -293,7 +293,25 @@ sayfa olduğu sorulur.</p>
       <td>Geniş görsellerde <b>Yatay</b>, uzun görsellerde <b>Dikey</b></td></tr>
   <tr><td><b>Çakışma Payı</b></td><td>Komşu sayfalarda tekrar basılan bindirme şeridi</td>
       <td><b>15</b> (kesip yapıştıracaksanız 20–30)</td></tr>
+  <tr><td><b>Yazıcı Kenar Boşluğu</b></td>
+      <td>Yazıcınızın kâğıdın kenarına <u>basamadığı</u> pay</td>
+      <td><b>5 mm</b> (kenarlıksız basan yazıcıda 0)</td></tr>
+  <tr><td><b>Kesim ve hizalama işaretleri</b></td>
+      <td>Her sayfaya kesim çizgisi, köşe işareti, hizalama artıları ve parça etiketi</td>
+      <td>Açık bırakın</td></tr>
+  <tr><td><b>Montaj haritası</b></td>
+      <td>PDF'in başına, parçaların nereye geleceğini gösteren bir sayfa ekler</td>
+      <td>Açık bırakın</td></tr>
 </table>
+
+<div class="kutu kutu-uyari">
+  <b>Yazıcı kenar boşluğu neden önemli?</b> Yazıcıların çoğu kâğıdın en kenarına basamaz;
+  genellikle 3–5 mm'lik bir şerit boş kalır. Program bu payı hesaba katmazsa her sayfadan
+  birkaç milimetre kaybolur ve parçalar yan yana geldiğinde <u>tutmaz</u>. Yazıcınızın
+  değerini bilmiyorsanız <b>5 mm</b> iyi bir başlangıçtır; “kenarlıksız baskı”
+  yapabiliyorsanız 0 girin. Bu ayar poster ölçüsünü de küçültür — üstteki ölçü yazısı
+  buna göre güncellenir.
+</div>
 
 <p>Yaklaşık poster ölçüsü (çakışma payı kadar birkaç milimetre küçülür):</p>
 <table>
@@ -362,6 +380,10 @@ seçin; program bütün değerleri sizin için doldurur.</p>
       <td>Görsel seçtiğiniz boy için küçükse, baskı öncesi yumuşak geçişli büyütür ve
           ardından hafifçe keskinleştirir.</td>
       <td><b>Açık</b> bırakın</td></tr>
+  <tr><td><b>Kâğıt türü</b></td>
+      <td>Baskı yapacağınız kâğıda göre renk ve kontrastı önceden telafi eder. Mat ve
+          fotokopi kâğıdı mürekkebi emer, renkleri söndürür; program bunu dengeler.</td>
+      <td>Kâğıdınızı seçin; emin değilseniz <b>Belirtme</b></td></tr>
   <tr><td><b>Gürültü azaltma</b></td>
       <td>Loş ışıkta çekilmiş fotoğraflardaki benek benek görüntüyü temizler.</td>
       <td>Temiz fotoğraflarda <b>Kapalı</b>; benekliyse <b>Hafif</b> ya da <b>Orta</b></td></tr>
@@ -432,7 +454,28 @@ bilgisayarda yarım dakika, eski bir dizüstünde on dakika sürebilir.</p>
   önizleme olduğundan keskin görünür.
 </div>
 
-<h2 id="uretim">7. Adım 5 — PDF üretme</h2>
+<h2 id="denetim">7. Baskıdan önce: rapor ve 1:1 önizleme</h2>
+<p>Kâğıt harcamadan önce sonucu görmenizi sağlayan iki araç, üretim düğmelerinin hemen
+üstündedir.</p>
+
+<h3>Baskı Raporu</h3>
+<p>Tek ekranda her şeyi özetler: kaynak görselin çözünürlüğü, matris, poster ve tek sayfa
+ölçüsü, baskı DPI'ı ve değerlendirmesi, çakışma payı, <b>kesilecek toplam uzunluk</b>,
+seçili iyileştirme ayarları ve varsa uyarılar. Aynı rapor, üretim sonrasında çıktı
+klasörüne <code>baski_raporu.txt</code> olarak da yazılır — “bunu hangi ayarlarla
+basmıştım?” sorusu bir daha sorulmaz.</p>
+{sekil("11_baski_raporu.png", "Baskı raporu", "üretimden önce tek ekranda özet ve uyarılar", 900)}
+
+<h3>1:1 Gerçek Boyut Önizleme</h3>
+<p>Posterin küçük bir bölgesini <b>kâğıttaki gerçek ölçüsünde</b> gösterir. Pikselleşme
+olup olmayacağını 8 sayfa bastıktan sonra değil, önceden görürsünüz. Pencerede sürükleyerek
+görselin başka bölgelerine gezinebilirsiniz.</p>
+<p>Üstteki <b>santimetre cetveli</b> kalibrasyon içindir: elinizdeki gerçek cetveli ekrana
+dayayın; ölçüler tutmuyorsa alttaki <b>Ekran DPI</b> değerini tutana kadar değiştirin.
+Böylece “gerçek boyut” gerçekten gerçek olur.</p>
+{sekil("12_birebir_onizleme.png", "1:1 önizleme", "üstte kalibrasyon cetveli, altta baskı DPI bilgisi", 900)}
+
+<h2 id="uretim">8. Adım 5 — PDF üretme</h2>
 <p><code>Oranı Koru ve Hazır PDF Üret</code> düğmesine basın. Alt satırda
 “Parça üretiliyor: 3 / 6” gibi ilerleme görünür; büyük görsellerde bu birkaç saniye sürer.
 Bitince özet penceresi açılır.</p>
@@ -441,7 +484,7 @@ Bitince özet penceresi açılır.</p>
 etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
 {sekil("07_bitis_durumu.png", "Üretim sonrası ana ekran", "alt satırda üretilen PDF adı yazar")}
 
-<h2 id="cikti">8. Çıktı klasöründe ne var?</h2>
+<h2 id="cikti">9. Çıktı klasöründe ne var?</h2>
 <p>Her üretim, tarih-saat damgalı ayrı bir klasöre yazılır; eski çıktıların üzerine
 <b>asla</b> yazılmaz.</p>
 <pre><code>Masaüstü/
@@ -455,7 +498,7 @@ etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
 bastırmak veya başka bir programda kullanmak isterseniz durur.</p>
 {sekil("09_a4_sayfa_ornegi.png", "PDF'in ilk sayfası", "her sayfa tek bir parçayı taşır", 900)}
 
-<h2 id="yazdirma">9. Yazdırma ayarları (en kritik adım)</h2>
+<h2 id="yazdirma">10. Yazdırma ayarları (en kritik adım)</h2>
 <div class="kutu kutu-uyari">
   <strong>⚠️ “Sayfaya Sığdır / Fit to Page” seçeneğini KAPATIN.</strong><br>
   Yazdırma penceresinde ölçeklendirmeyi <b>“Gerçek Boyut (Actual Size)”</b> veya
@@ -469,7 +512,15 @@ bastırmak veya başka bir programda kullanmak isterseniz durur.</p>
   <li><b>Kalite:</b> fotoğraf / yüksek</li>
 </ul>
 
-<h2 id="birlestirme">10. Kesme ve birleştirme</h2>
+<h2 id="birlestirme">11. Kesme ve birleştirme</h2>
+<div class="kutu kutu-ok">
+  <b>Program size yardım eder.</b> Kesim işaretleri açıkken her sayfada şunlar bulunur:
+  kesikli <b>kesim çizgisi</b> (buradan kesin), köşelerde <b>kesim işaretleri</b>,
+  bindirme şeridinin ortasında <b>kırmızı artı hedefleri</b> (iki sayfayı üst üste
+  getirirken bu artılar çakışmalı) ve sayfanın altında <b>parça etiketi</b>
+  (“Parca 2-3 · saginda 2-4, altinda 3-3”). PDF'in ilk sayfasındaki <b>montaj haritası</b>
+  ise bütün parçaların yerleşimini tek bakışta gösterir.
+</div>
 <p>Program her sayfaya, komşusuyla ortak olan bir <b>bindirme şeridi</b> basar. Bu şerit
 sayesinde parçalar üst üste bindirilerek hizalanır.</p>
 <ol>
@@ -484,7 +535,7 @@ sayesinde parçalar üst üste bindirilerek hizalanır.</p>
 yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
 {sekil("08_montaj_dogrulama.png", "6 parçanın birleştirilmiş hali", "ek yerlerinde kayma veya sünme yok")}
 
-<h2 id="dizme">11. Çok resmi tek A4'e dizme</h2>
+<h2 id="dizme">12. Çok resmi tek A4'e dizme</h2>
 <p>Programın ikinci modu, poster bölmenin tam tersini yapar: <b>birçok resmi tek A4
 sayfaya ızgara halinde dizer</b>. Ürün fotoğrafları, katalog sayfası, öğrenci çalışmaları
 ya da vesikalık baskısı gibi işlerde kâğıt israfını önler.</p>
@@ -521,7 +572,7 @@ bu moda göre değişir.</p>
 düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DPI, gerçek A4
 ölçüsündedir (2480 × 3508 piksel); yazdırırken yine <b>%100 / Gerçek Boyut</b> seçin.</p>
 
-<h2 id="sorun">12. Sık karşılaşılan durumlar</h2>
+<h2 id="sorun">13. Sık karşılaşılan durumlar</h2>
 <table>
   <tr><th>Durum</th><th>Sebep / Çözüm</th></tr>
   <tr><td>Parçalar birleşmiyor, kayıyor</td>
@@ -560,7 +611,7 @@ düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DP
       <td>Yalnızca ilk seferde bileşenler indirilir (~30 sn). Sonraki açılışlar anındadır.</td></tr>
 </table>
 
-<h2 id="teknik">13. Teknik notlar</h2>
+<h2 id="teknik">14. Teknik notlar</h2>
 <ul>
   <li><b>Sünme yok:</b> Görsel, sayfa matrisinin oranına <i>doldurularak değil</i>, oranı
       korunarak yerleştirilir; artan alan beyaz bırakılır.</li>
@@ -582,7 +633,7 @@ düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DP
   <li><b>Kaynak kodu:</b> <code>github.com/mustafasneu/poster-basim</code></li>
 </ul>
 
-<h2 id="baglantilar">14. Bağlantılar</h2>
+<h2 id="baglantilar">15. Bağlantılar</h2>
 <p>İhtiyaç duyabileceğiniz bütün adresler:</p>
 <table>
   <tr><th>Ne için</th><th>Adres</th></tr>
@@ -600,7 +651,7 @@ düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DP
       <td><a href="{DEPO}/issues">{DEPO}/issues</a></td></tr>
 </table>
 
-<h2 id="kurulum">15. Kaldırma, taşıma ve internetsiz kurulum</h2>
+<h2 id="kurulum">16. Kaldırma, taşıma ve internetsiz kurulum</h2>
 <div class="kutu kutu-ok">
   <strong>Programı kaldırmak:</strong> <code>poster-basim-main</code> klasörünü ve
   masaüstündeki “Poster Basım” simgesini silin. Bu kadar — program bilgisayarınızın

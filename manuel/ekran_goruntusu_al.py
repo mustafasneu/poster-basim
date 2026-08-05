@@ -139,6 +139,18 @@ def main():
         root.after(1400, lambda: (app.mod.set("poster"), app.modu_uygula(),
                                   shutil.rmtree(gecici, ignore_errors=True)))
 
+    def rapor_ekrani():
+        root.after(700, lambda: cek(root, "11_baski_raporu", tum_ekran=True))
+        root.after(1500, lambda: [w.destroy() for w in root.winfo_children()
+                                  if isinstance(w, tk.Toplevel)])
+        app.baski_raporunu_goster()
+
+    def birebir_ekrani():
+        root.after(900, lambda: cek(root, "12_birebir_onizleme", tum_ekran=True))
+        root.after(1700, lambda: [w.destroy() for w in root.winfo_children()
+                                  if isinstance(w, tk.Toplevel)])
+        app.gercek_boyut_onizleme()
+
     def uret():
         from tkinter import messagebox
 
@@ -177,6 +189,8 @@ def main():
             app.onizlemeyi_guncelle(),
         ),
         lambda: cek(root, "05_iyilestirme"),
+        rapor_ekrani,
+        birebir_ekrani,
         uret,
         lambda: cek(root, "07_bitis_durumu"),
         dizme_ekrani,
