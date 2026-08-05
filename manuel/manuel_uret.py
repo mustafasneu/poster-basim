@@ -239,8 +239,11 @@ dosyasını seçin, gerisi resimle aynıdır.</p>
 <p>PDF <b>vektörel</b> olduğu için program sayfayı <b>300 DPI</b> baskı çözünürlüğünde
 tarar; büyütmede bozulma olmaz. Bu yüzden PDF kaynak, aynı tasarımın ekran görüntüsünü
 almaktan <u>her zaman daha kalitelidir</u>.</p>
-<p>PDF birden çok sayfa içeriyorsa hangi sayfanın postere dönüşeceği sorulur:</p>
-{sekil("02c_pdf_sayfa_secme.png", "PDF sayfa seçme penceresi", "çok sayfalı PDF'lerde çıkar", 760)}
+<p>PDF birden çok sayfa içeriyorsa hangi sayfanın postere dönüşeceği sorulur. Sayfayı
+körlemesine seçmezsiniz: pencerede <b>o sayfanın küçük görüntüsü</b> durur.
+<b>◀ ▶</b> düğmeleriyle (ya da klavyedeki sol/sağ ok tuşlarıyla) sayfalar arasında gezip
+istediğinizi görünce <b>Bu Sayfayı Kullan</b> deyin.</p>
+{sekil("02c_pdf_sayfa_secme.png", "PDF sayfa seçme penceresi", "seçilen sayfa önizlemede görünür", 760)}
 <div class="kutu kutu-bilgi">
   <b>Tarama birkaç saniye sürebilir</b> — büyük afiş PDF'lerinde alt satırda
   “PDF taranıyor (300 DPI)…” yazar. Şifreli PDF'ler açılamaz; şifreyi kaldırıp

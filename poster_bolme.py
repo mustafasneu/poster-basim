@@ -437,8 +437,11 @@ def pdf_sayfa_sayisi(yol: str) -> int:
         belge.close()
 
 
-def pdf_sayfasini_goruntuye_cevir(yol: str, sayfa_no: int = 1) -> Image.Image:
-    """PDF'in bir sayfasını baskı çözünürlüğünde görüntüye çevirir (sayfa_no 1'den başlar)."""
+def pdf_sayfasini_goruntuye_cevir(yol: str, sayfa_no: int = 1, dpi: int = PDF_DPI) -> Image.Image:
+    """PDF'in bir sayfasını görüntüye çevirir (sayfa_no 1'den başlar).
+
+    dpi düşürülerek hızlı önizleme de alınabilir; poster üretimi PDF_DPI kullanır.
+    """
     pdfium = pdfium_getir()
     try:
         belge = pdfium.PdfDocument(yol)
@@ -450,7 +453,7 @@ def pdf_sayfasini_goruntuye_cevir(yol: str, sayfa_no: int = 1) -> Image.Image:
             raise ValueError(f"PDF {len(belge)} sayfa; {sayfa_no}. sayfa yok.")
         sayfa = belge[sayfa_no - 1]
         genislik_punto, yukseklik_punto = sayfa.get_size()
-        olcek = PDF_DPI / 72
+        olcek = dpi / 72
         # Çok büyük sayfalarda (afiş boyu PDF) çözünürlüğü sınırla.
         en_buyuk = max(genislik_punto, yukseklik_punto) * olcek
         if en_buyuk > PDF_EN_BUYUK_KENAR:
@@ -982,7 +985,7 @@ class SunmesizBaskiApp:
 
         sayfa_no = 1
         if toplam > 1:
-            sayfa_no = self._sayfa_penceresi(toplam)
+            sayfa_no = self._sayfa_penceresi(yol, toplam)
             if sayfa_no is None:
                 return None
 
@@ -996,8 +999,8 @@ class SunmesizBaskiApp:
             messagebox.showerror("Hata", str(hata))
             return None
 
-    def _sayfa_penceresi(self, toplam: int) -> int | None:
-        """Çok sayfalı PDF'te hangi sayfanın poster olacağını sorar."""
+    def _sayfa_penceresi(self, yol: str, toplam: int) -> int | None:
+        """Çok sayfalı PDF'te hangi sayfanın poster olacağını, önizleme göstererek sorar."""
         pencere = tk.Toplevel(self.root)
         pencere.title("PDF sayfası seçin")
         pencere.transient(self.root)
@@ -1008,24 +1011,65 @@ class SunmesizBaskiApp:
         ttk.Label(cerceve, text=f"Bu PDF {toplam} sayfadan oluşuyor.").pack(anchor=tk.W)
         ttk.Label(
             cerceve,
-            text="Postere dönüştürülecek sayfayı seçin:",
+            text="Sayfalar arasında gezinip postere dönüştüreceğinizi seçin:",
             foreground="gray",
         ).pack(anchor=tk.W, pady=(2, 8))
 
-        secim = ttk.Spinbox(cerceve, from_=1, to=toplam, width=8)
+        # Sabit ölçülü kutu: sayfalar arasında gezinirken pencere boyutu oynamasın.
+        kutu = ttk.Frame(cerceve, width=320, height=320)
+        kutu.pack_propagate(False)
+        kutu.pack(pady=(0, 10))
+        onizleme = ttk.Label(kutu, relief="groove", anchor=tk.CENTER)
+        onizleme.pack(fill=tk.BOTH, expand=True)
+        onbellek: dict[int, ImageTk.PhotoImage] = {}
+
+        gezinme = ttk.Frame(cerceve)
+        gezinme.pack(anchor=tk.W)
+        geri_btn = ttk.Button(gezinme, text="◀", width=3)
+        geri_btn.pack(side=tk.LEFT)
+        secim = ttk.Spinbox(gezinme, from_=1, to=toplam, width=6, justify=tk.CENTER)
         secim.set(1)
-        secim.pack(anchor=tk.W)
+        secim.pack(side=tk.LEFT, padx=6)
+        ileri_btn = ttk.Button(gezinme, text="▶", width=3)
+        ileri_btn.pack(side=tk.LEFT)
+        ttk.Label(gezinme, text=f"/ {toplam}", foreground="gray").pack(side=tk.LEFT, padx=(6, 0))
+
+        def gecerli_sayfa() -> int:
+            try:
+                return min(max(int(secim.get()), 1), toplam)
+            except ValueError:
+                return 1
+
+        def onizlemeyi_goster(*_):
+            no = gecerli_sayfa()
+            if no not in onbellek:
+                onizleme.config(text="yükleniyor...", image="")
+                pencere.update_idletasks()
+                try:  # önizleme için düşük çözünürlük yeter, hızlı olsun
+                    kucuk = pdf_sayfasini_goruntuye_cevir(yol, no, dpi=40)
+                except (ValueError, ImportError):
+                    onizleme.config(text="(önizleme alınamadı)", image="")
+                    return
+                kucuk.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                onbellek[no] = ImageTk.PhotoImage(kucuk)
+            onizleme.config(image=onbellek[no], text="")
+
+        def kaydir(adim: int):
+            secim.set(min(max(gecerli_sayfa() + adim, 1), toplam))
+            onizlemeyi_goster()
+
+        geri_btn.config(command=lambda: kaydir(-1))
+        ileri_btn.config(command=lambda: kaydir(1))
+        secim.config(command=onizlemeyi_goster)
+        secim.bind("<KeyRelease>", onizlemeyi_goster)
+        pencere.bind("<Left>", lambda _o: kaydir(-1))
+        pencere.bind("<Right>", lambda _o: kaydir(1))
 
         sonuc: dict[str, int | None] = {"sayfa": None}
 
         def onayla(_olay=None):
-            try:
-                deger = int(secim.get())
-            except ValueError:
-                return
-            if 1 <= deger <= toplam:
-                sonuc["sayfa"] = deger
-                pencere.destroy()
+            sonuc["sayfa"] = gecerli_sayfa()
+            pencere.destroy()
 
         dugmeler = ttk.Frame(cerceve)
         dugmeler.pack(fill=tk.X, pady=(12, 0))
@@ -1036,6 +1080,7 @@ class SunmesizBaskiApp:
 
         pencere.bind("<Return>", onayla)
         pencere.bind("<Escape>", lambda _o: pencere.destroy())
+        onizlemeyi_goster()
         pencere.update_idletasks()
         x = self.root.winfo_rootx() + (self.root.winfo_width() - pencere.winfo_width()) // 2
         y = self.root.winfo_rooty() + (self.root.winfo_height() - pencere.winfo_height()) // 3
