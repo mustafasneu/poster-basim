@@ -13,6 +13,8 @@ yazmaz.
 
 - **Sünme yok** — görsel, sayfa matrisinin oranına doldurularak değil, oranı korunarak
   yerleştirilir; artan alan beyaz bırakılır. Daireler basık, yüzler uzamış çıkmaz.
+- **Link ile resim alma** — resim internetteyse indirmenize gerek yok; adresi yapıştırın,
+  program indirip yükler.
 - **Tek ölçek garantisi** — kenar parçalarında eksik kalan bindirme payı beyazla
   tamamlanır, böylece bütün sayfalar birebir aynı ölçekle basılır ve parçalar tutar.
 - **Çakışma payı (bindirme)** — komşu sayfalarda tekrar basılan şerit sayesinde kesip
@@ -57,7 +59,8 @@ açılışlar anındadır.
 
 ## Kullanım
 
-1. **Bilgisayardan Resim Seç** ile görseli yükleyin (`.jpg .jpeg .png .bmp .webp .tif .tiff`).
+1. **Bilgisayardan Resim Seç** ile görseli yükleyin (`.jpg .jpeg .png .bmp .webp .tif .tiff`)
+   ya da **İnternetten Link ile Al** ile resmin web adresini yapıştırın.
 2. **Sütun** ve **satır** sayısını girerek poster ölçüsünü belirleyin (örn. 4 × 2 = 8 A4).
 3. Gerekirse **çakışma payını** ayarlayın — kesip yapıştıracaksanız 20–30 iyi gelir.
 4. Sürgülerle keskinlik / kontrast / renk ayarını yapın.

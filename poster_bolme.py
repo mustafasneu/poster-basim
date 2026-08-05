@@ -384,6 +384,88 @@ def tk_pencerelerini_turkcelestir(root: tk.Misc):
         pass
 
 
+EN_BUYUK_INDIRME = 60 * 1024 * 1024  # 60 MB; poster kaynağı için fazlasıyla yeterli
+INDIRME_ZAMAN_ASIMI = 30
+
+
+def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
+    """Verilen web adresindeki resmi indirip yerel bir dosya yolu döndürür.
+
+    Hata durumlarında kullanıcıya gösterilecek Türkçe açıklamayla ValueError atar.
+    """
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    baglanti = baglanti.strip().strip("<>\"'")
+    parcali = urllib.parse.urlparse(baglanti)
+    if parcali.scheme not in ("http", "https") or not parcali.netloc:
+        raise ValueError(
+            "Bu bir web adresi değil.\n"
+            "Adres http:// ya da https:// ile başlamalı.\n"
+            "Örnek: https://ornek.com/resim.jpg"
+        )
+
+    # Bazı siteler tarayıcı dışı isteklere kapalıdır; sıradan bir tarayıcı gibi görünelim.
+    istek = urllib.request.Request(
+        baglanti,
+        headers={
+            "User-Agent": "Mozilla/5.0 (compatible; PosterBasim/1.0)",
+            "Accept": "image/*,*/*;q=0.8",
+        },
+    )
+    try:
+        with urllib.request.urlopen(istek, timeout=INDIRME_ZAMAN_ASIMI) as yanit:
+            tur = (yanit.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            bildirilen = yanit.headers.get("Content-Length")
+            if bildirilen and bildirilen.isdigit() and int(bildirilen) > EN_BUYUK_INDIRME:
+                raise ValueError(
+                    f"Dosya çok büyük ({int(bildirilen) // 1048576} MB).\n"
+                    f"En fazla {EN_BUYUK_INDIRME // 1048576} MB indirilebilir."
+                )
+            if tur and not tur.startswith("image/"):
+                raise ValueError(
+                    "Bu adres bir resim değil, sayfa döndürüyor.\n"
+                    "Resmin üzerine sağ tıklayıp “Resim adresini kopyala” deyin ve\n"
+                    "kopyaladığınız adresi yapıştırın."
+                )
+            veri = yanit.read(EN_BUYUK_INDIRME + 1)
+    except urllib.error.HTTPError as hata:
+        raise ValueError(f"Adrese erişilemedi (sunucu {hata.code} döndürdü).") from hata
+    except urllib.error.URLError as hata:
+        raise ValueError(
+            f"Bağlantı kurulamadı: {hata.reason}\nİnternet bağlantınızı kontrol edin."
+        ) from hata
+    except OSError as hata:
+        raise ValueError(f"İndirme sırasında sorun çıktı:\n{hata}") from hata
+
+    if len(veri) > EN_BUYUK_INDIRME:
+        raise ValueError(f"Dosya {EN_BUYUK_INDIRME // 1048576} MB sınırını aşıyor.")
+    if not veri:
+        raise ValueError("Adres boş bir dosya döndürdü.")
+
+    # İçeriği gerçekten resim mi diye açarak sınıyoruz; uzantıya güvenmiyoruz.
+    from io import BytesIO
+
+    try:
+        with Image.open(BytesIO(veri)) as deneme:
+            deneme.verify()
+            bicim = (deneme.format or "img").lower()
+    except (OSError, ValueError) as hata:
+        raise ValueError(
+            "İnen dosya açılabilir bir resim değil.\n"
+            "Resmin doğrudan adresini kullandığınızdan emin olun."
+        ) from hata
+
+    ad = os.path.basename(urllib.parse.urlparse(baglanti).path) or f"linkten_resim.{bicim}"
+    if "." not in ad:
+        ad = f"{ad}.{bicim}"
+    hedef = os.path.join(hedef_dizin, ad)
+    with open(hedef, "wb") as dosya:
+        dosya.write(veri)
+    return hedef
+
+
 def cikis_klasoru_hazirla(klasor_adi: str) -> str:
     """Yazılabilir bir çıktı klasörü oluşturur.
 
@@ -501,6 +583,7 @@ class SunmesizBaskiApp:
         self.resim_yolu: str | None = None
         self.son_cikis_klasoru: str | None = None
         self._filtre_isi: str | None = None
+        self._indirme_dizini: str | None = None  # linkten inen resimler için geçici klasör
 
         self.arayuz_tasarla()
 
@@ -536,7 +619,9 @@ class SunmesizBaskiApp:
             pady=5, anchor=tk.W
         )
         self.dosya_btn = ttk.Button(ayarlar, text="Bilgisayardan Resim Seç", command=self.resim_sec)
-        self.dosya_btn.pack(fill=tk.X, pady=5)
+        self.dosya_btn.pack(fill=tk.X, pady=(5, 3))
+        self.link_btn = ttk.Button(ayarlar, text="İnternetten Link ile Al", command=self.linkten_al)
+        self.link_btn.pack(fill=tk.X, pady=(0, 5))
         self.dosya_lbl = ttk.Label(
             ayarlar, text="Henüz resim seçilmedi...", wraplength=220, foreground="gray"
         )
@@ -674,6 +759,103 @@ class SunmesizBaskiApp:
         if not secilen_yol:
             return
         self.resmi_yukle(secilen_yol)
+
+    def linkten_al(self):
+        """Kullanıcıdan bir resim adresi alıp indirir; indirme arayüzü kilitlemez."""
+        baglanti = self._link_penceresi()
+        if not baglanti:
+            return
+
+        import queue
+        import tempfile
+        import threading
+
+        if self._indirme_dizini is None:
+            self._indirme_dizini = tempfile.mkdtemp(prefix="poster_basim_")
+
+        self.dosya_btn.config(state=tk.DISABLED)
+        self.link_btn.config(state=tk.DISABLED)
+        self.durum_lbl.config(text="Resim indiriliyor...")
+
+        # Tkinter iş parçacığı güvenli değildir: indirme iş parçacığı arayüze doğrudan
+        # dokunamaz, sonucu kuyruğa bırakır; arayüzü yalnızca ana iş parçacığı günceller.
+        kuyruk: queue.Queue[tuple[str, str]] = queue.Queue()
+
+        def indir():
+            try:
+                kuyruk.put(("tamam", linkten_resim_indir(baglanti, self._indirme_dizini)))
+            except ValueError as hata:
+                kuyruk.put(("hata", str(hata)))
+            except Exception as hata:  # beklenmedik durumda da kullanıcı bilgilendirilsin
+                kuyruk.put(("hata", f"İndirme sırasında beklenmedik bir sorun çıktı:\n{hata}"))
+
+        def yokla():
+            try:
+                durum, deger = kuyruk.get_nowait()
+            except queue.Empty:
+                self.root.after(120, yokla)
+                return
+            self.dosya_btn.config(state=tk.NORMAL)
+            self.link_btn.config(state=tk.NORMAL)
+            if durum == "hata":
+                self.durum_lbl.config(text="İndirme başarısız.")
+                messagebox.showerror("Link ile alma", deger)
+                return
+            self.resmi_yukle(deger)
+
+        threading.Thread(target=indir, daemon=True).start()
+        self.root.after(120, yokla)
+
+    def _link_penceresi(self) -> str | None:
+        """Adres soran küçük pencere. Tk'nin hazır giriş penceresi İngilizce olduğu için
+        kendi penceremizi kuruyoruz."""
+        pencere = tk.Toplevel(self.root)
+        pencere.title("İnternetten Link ile Al")
+        pencere.transient(self.root)
+        pencere.resizable(False, False)
+        cerceve = ttk.Frame(pencere, padding=15)
+        cerceve.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(cerceve, text="Resmin web adresini yapıştırın:").pack(anchor=tk.W)
+        ttk.Label(
+            cerceve,
+            text="Tarayıcıda resme sağ tıklayıp “Resim adresini kopyala” diyebilirsiniz.",
+            foreground="gray",
+            wraplength=430,
+        ).pack(anchor=tk.W, pady=(2, 8))
+
+        giris = ttk.Entry(cerceve, width=64)
+        giris.pack(fill=tk.X)
+        try:  # panoda adres varsa hazır gelsin
+            pano = self.root.clipboard_get()
+            if pano.strip().startswith(("http://", "https://")):
+                giris.insert(0, pano.strip())
+                giris.select_range(0, tk.END)
+        except tk.TclError:
+            pass
+        giris.focus_set()
+
+        sonuc: dict[str, str | None] = {"adres": None}
+
+        def onayla(_olay=None):
+            sonuc["adres"] = giris.get().strip()
+            pencere.destroy()
+
+        dugmeler = ttk.Frame(cerceve)
+        dugmeler.pack(fill=tk.X, pady=(12, 0))
+        ttk.Button(dugmeler, text="İptal", command=pencere.destroy).pack(side=tk.RIGHT)
+        ttk.Button(dugmeler, text="Resmi Al", command=onayla).pack(side=tk.RIGHT, padx=(0, 8))
+
+        pencere.bind("<Return>", onayla)
+        pencere.bind("<Escape>", lambda _o: pencere.destroy())
+        pencere.update_idletasks()
+        # Ana pencerenin ortasına yerleştir.
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - pencere.winfo_width()) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - pencere.winfo_height()) // 3
+        pencere.geometry(f"+{max(0, x)}+{max(0, y)}")
+        pencere.grab_set()
+        self.root.wait_window(pencere)
+        return sonuc["adres"] or None
 
     def resmi_yukle(self, secilen_yol: str):
         try:

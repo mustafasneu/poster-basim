@@ -78,6 +78,17 @@ def main():
         except tk.TclError:
             pass
 
+    def link_dialogu():
+        # "İnternetten Link ile Al" penceresi; örnek bir adresle açılıp görüntüsü alınır.
+        root.clipboard_clear()
+        root.clipboard_append("https://ornek.com/poster-gorseli.jpg")
+        root.after(900, lambda: cek(root, "02b_link_penceresi", tum_ekran=True))
+        root.after(
+            1600,
+            lambda: [w.destroy() for w in root.winfo_children() if isinstance(w, tk.Toplevel)],
+        )
+        app.linkten_al()
+
     def uret():
         from tkinter import messagebox
 
@@ -97,6 +108,7 @@ def main():
     sirala(
         lambda: cek(root, "01_baslangic"),
         dosya_dialogu,
+        link_dialogu,
         lambda: app.resmi_yukle(ORNEK),
         lambda: cek(root, "03_resim_yuklendi"),
         lambda: (

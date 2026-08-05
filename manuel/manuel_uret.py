@@ -213,6 +213,22 @@ yine de yerinde kalır.</p>
 <b>İptal</b>.</p>
 <p>Desteklenen biçimler: <code>.jpg .jpeg .png .bmp .webp .tif .tiff</code>.
 Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
+
+<h3>İnternetteki bir resmi doğrudan kullanma</h3>
+<p>Resim bilgisayarınızda değil de bir web sayfasındaysa indirmenize gerek yok:
+<code>İnternetten Link ile Al</code> düğmesine basın, açılan kutuya resmin adresini
+yapıştırıp <b>Resmi Al</b> deyin. Program resmi kendisi indirir ve doğrudan yükler.</p>
+<p><b>Adresi nasıl alırım?</b> Tarayıcıda resmin üzerine <b>sağ tıklayın</b> →
+<b>“Resim adresini kopyala”</b>. Panonuzda bir adres varsa kutuya zaten hazır gelir.</p>
+{sekil("02b_link_penceresi.png", "Link ile alma penceresi", "adres yapıştırılıp Resmi Al denir", 760)}
+<div class="kutu kutu-bilgi">
+  <b>Dikkat edilecekler:</b> Adres <u>resmin kendisine</u> ait olmalı (sonu genelde
+  <code>.jpg</code> / <code>.png</code> ile biter); sayfanın adresi işe yaramaz, program
+  “bu adres bir resim değil” uyarısı verir. En fazla 60 MB indirilir. Şifre isteyen ya da
+  yalnızca üyelere açık sayfalardaki resimler indirilemez — o durumda resmi tarayıcıdan
+  <b>sağ tık → Resmi farklı kaydet</b> ile bilgisayarınıza kaydedip
+  <code>Bilgisayardan Resim Seç</code> ile açın.
+</div>
 {sekil("02_dosya_secme.png", "Dosya seçme penceresi", "Klasör · Dosya adı · Aç · İptal")}
 
 <div class="kutu kutu-bilgi">
