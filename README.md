@@ -117,12 +117,17 @@ orada anlatılıyor.
 
 | Dosya                   | İşlevi                                              |
 | ----------------------- | --------------------------------------------------- |
-| `poster_bolme.py`       | Programın kendisi (arayüz + bölme + PDF)            |
-| `kurulum.py`            | Masaüstü kısayolu oluşturucu (üç sistem)            |
-| `calistir.sh`           | Linux / macOS başlatıcısı                            |
-| `Poster Basim.bat`     | Windows başlatıcısı                                  |
-| `Poster Basim.command` | macOS başlatıcısı                                    |
-| `manuel/`               | Kılavuzu ve ekran görüntülerini üreten betikler      |
+| `poster_bolme.py`         | Programın kendisi (arayüz, bölme, dizme, PDF)          |
+| `kurulum.py`              | Masaüstü kısayolu oluşturucu (üç sistem)               |
+| `Poster Basim.bat`        | Windows başlatıcısı                                     |
+| `Poster Basim.command`    | macOS başlatıcısı                                       |
+| `calistir.sh`             | Linux / macOS başlatıcısı                               |
+| `Kisayol Olustur.bat`     | Windows kısayol oluşturucu                              |
+| `Kisayol Olustur.command` | macOS kısayol oluşturucu                                |
+| `kisayol-olustur.sh`      | Linux kısayol oluşturucu                                |
+| `KULLANIM_KILAVUZU.pdf`   | Ekran görüntülü tam kılavuz                             |
+| `manuel/`                 | Kılavuzu ve ekran görüntülerini üreten betikler         |
+| `eklentiler/`             | AI modeli buraya iner (depoda yoktur, kullanıcı indirir) |
 
 ## Teknik
 
