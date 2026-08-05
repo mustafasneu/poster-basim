@@ -705,7 +705,10 @@ def pencere_simgesini_ayarla(root: tk.Misc):
         simge = ImageTk.PhotoImage(Image.open(simge_yolu))
         root.iconphoto(True, simge)  # referans tutulmazsa simge kaybolur
         return simge
-    except (OSError, tk.TclError):
+    except Exception:
+        # Simge tamamen görsel bir ayrıntıdır; hangi sebeple olursa olsun
+        # (eksik dosya, Tk eklentisi bulunamadı, paketleme sorunu) programın
+        # açılmasını engellememeli.
         return None
 
 
