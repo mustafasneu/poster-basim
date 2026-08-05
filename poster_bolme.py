@@ -103,7 +103,9 @@ def _calisir_mi(python_yolu: str) -> bool:
     try:
         return (
             subprocess.run(
-                [python_yolu, "-c", "import tkinter, PIL, reportlab"],
+                # certifi de aranır: eski kurulumlarda eksik kalırsa macOS'ta bütün
+                # https indirmeleri sertifika hatasıyla düşer, ortam kendini onarsın.
+                [python_yolu, "-c", "import tkinter, PIL, reportlab, certifi"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=90,

@@ -12,7 +12,7 @@ if [ "${1:-}" = "--kisayol" ]; then
     shift
 fi
 
-hazir_mi() { [ -x "$1" ] && "$1" -c "import tkinter, PIL, reportlab" >/dev/null 2>&1; }
+hazir_mi() { [ -x "$1" ] && "$1" -c "import tkinter, PIL, reportlab, certifi" >/dev/null 2>&1; }
 tkinterli_mi() { [ -x "$1" ] && "$1" -c "import tkinter" >/dev/null 2>&1; }
 
 # 1) Daha önce hazırlanmış ortam varsa doğrudan onunla aç (en hızlı yol).
