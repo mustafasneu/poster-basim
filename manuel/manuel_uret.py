@@ -229,17 +229,18 @@ almaktan <u>her zaman daha kalitelidir</u>.</p>
   yeniden deneyin.
 </div>
 
-<h3>İnternetteki bir resmi doğrudan kullanma</h3>
-<p>Resim bilgisayarınızda değil de bir web sayfasındaysa indirmenize gerek yok:
-<code>İnternetten Link ile Al</code> düğmesine basın, açılan kutuya resmin adresini
-yapıştırıp <b>Resmi Al</b> deyin. Program resmi kendisi indirir ve doğrudan yükler.</p>
+<h3>İnternetteki bir görseli doğrudan kullanma</h3>
+<p>Görsel bilgisayarınızda değil de bir web sayfasındaysa indirmenize gerek yok:
+<code>İnternetten Link ile Al</code> düğmesine basın, açılan kutuya adresi yapıştırıp
+<b>Resmi Al</b> deyin. Program kendisi indirir ve doğrudan yükler.
+<b>Resim de PDF de</b> olabilir — PDF ise yine sayfası taranır ve gerekiyorsa hangi
+sayfa olduğu sorulur.</p>
 <p><b>Adresi nasıl alırım?</b> Tarayıcıda resmin üzerine <b>sağ tıklayın</b> →
 <b>“Resim adresini kopyala”</b>. Panonuzda bir adres varsa kutuya zaten hazır gelir.</p>
 {sekil("02b_link_penceresi.png", "Link ile alma penceresi", "adres yapıştırılıp Resmi Al denir", 760)}
 <div class="kutu kutu-bilgi">
-  <b>Dikkat edilecekler:</b> Adres <u>resmin kendisine</u> ait olmalı (sonu genelde
-  <code>.jpg</code> / <code>.png</code> ile biter); sayfanın adresi işe yaramaz, program
-  “bu adres bir resim değil” uyarısı verir. En fazla 60 MB indirilir. Şifre isteyen ya da
+  <b>Dikkat edilecekler:</b> Adres <u>görselin kendisine</u> ait olmalı (sonu genelde
+  <code>.jpg</code> / <code>.png</code> / <code>.pdf</code> ile biter); sayfanın adresi işe yaramaz, program uyarı verir. En fazla 60 MB indirilir. Şifre isteyen ya da
   yalnızca üyelere açık sayfalardaki resimler indirilemez — o durumda resmi tarayıcıdan
   <b>sağ tık → Resmi farklı kaydet</b> ile bilgisayarınıza kaydedip
   <code>Bilgisayardan Resim Seç</code> ile açın.
