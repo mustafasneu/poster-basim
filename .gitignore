@@ -20,3 +20,6 @@ Bolu_Parcalanmis_Resimler/
 build/
 dist/
 *.spec
+
+# AI büyütme eklentisi (kullanıcı isterse kendi indirir)
+eklentiler/
