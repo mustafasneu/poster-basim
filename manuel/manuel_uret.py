@@ -382,6 +382,39 @@ seçin; program bütün değerleri sizin için doldurur.</p>
   hâleler (halkalanma) belirir ve baskıda çirkin durur. Önizlemede kenarlara yakından bakın.
 </div>
 
+<h4>AI ile büyütme (isteğe bağlı eklenti)</h4>
+<p><b>Bu nedir?</b> Yapay zekâ ile büyütme, küçük bir görseli büyütürken kaybolan detayı
+<b>tahmin ederek yeniden üretir</b>. Klasik büyütme yalnızca pikselleri yumuşatır; AI,
+kenarları ve dokuyu yeniden çizer. Küçük görsellerde gözle görülür fark yaratır.</p>
+
+<p><b>Neden ayrı eklenti?</b> Bu iş için bir hesaplama motoru (~15 MB) ve model dosyası
+(~21 MB) gerekir. Bunlar programın içinde gelseydi, bu özelliği hiç kullanmayacak herkes
+de indirmek zorunda kalırdı. Bu yüzden isteğe bağlı bırakıldı:
+<b>eklenti kurulmadan AI büyütme yapılamaz</b>. Panelde bu durum yazılı olarak görünür.</p>
+
+<p><b>Nasıl kurulur?</b> <code>AI ile Büyüt (eklenti gerekir)</code> düğmesine basın.
+Program ne indireceğini, boyutunu, kaynağını ve ne işe yaradığını anlatan bir pencere
+açar; kabul ederseniz bir kez indirir ve program klasöründeki <code>eklentiler</code>
+klasörüne koyar. Bir daha indirmez, internet de yalnızca o ilk seferde gerekir.</p>
+
+<p><b>Ne kadar sürer?</b> Program, işleme başlamadan önce <u>sizin bilgisayarınızda</u>
+küçük bir ölçüm yapar ve “bu görsel yaklaşık şu kadar sürecek” diye sorar. Karar sizindir.
+İşlem sırasında kaç parçanın bittiği ve kalan sürenin tahmini görünür, istediğiniz an
+<b>Durdur</b> diyebilirsiniz. Süre donanıma göre çok değişir: aynı iş güçlü bir
+bilgisayarda yarım dakika, eski bir dizüstünde on dakika sürebilir.</p>
+
+<div class="kutu kutu-uyari">
+  <b>AI var olmayan detayı uydurur.</b> Küçük yazılar, yüz hatları ve logolar
+  olduğundan farklı çıkabilir. Belge, metin ve kurumsal logo içeren işlerde klasik
+  büyütmede kalmak daha güvenlidir. Sonucu önizlemede kontrol edin.
+</div>
+
+<div class="kutu kutu-bilgi">
+  <b>Kaynak:</b> Model, Apache-2.0 lisanslı açık kaynak Swin2SR modelinin ONNX sürümüdür
+  (huggingface.co/Xenova/swin2SR-classical-sr-x2-64). İnternete yalnızca indirme sırasında
+  bağlanılır; görselleriniz hiçbir yere gönderilmez, tüm işlem kendi bilgisayarınızda yapılır.
+</div>
+
 <h4>Renk ve ton</h4>
 <table>
   <tr><th>Sürgü</th><th>Aralık</th><th>Baskı için öneri</th></tr>

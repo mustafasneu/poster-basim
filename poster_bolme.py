@@ -808,6 +808,162 @@ def akilli_buyut(img: Image.Image, hedef_dpi: int, sutun: int, satir: int, dikey
     return keskinlestir(buyutulmus, yaricap=1.0, miktar=60, esik=3), kat
 
 
+# ------------------------------------------------------------------- AI büyütme eklentisi
+# Programla birlikte gelmez: hesaplama motoru ve model ~35 MB'dır ve bu özelliği
+# kullanmayacak herkesin bunu indirmesi anlamsız olurdu. Kullanıcı isterse indirir.
+AI_MODEL_ADRESI = (
+    "https://huggingface.co/Xenova/swin2SR-classical-sr-x2-64/resolve/main/onnx/"
+    "model_quantized.onnx"
+)
+AI_MODEL_DOSYASI = os.path.join(PROJE_DIZINI, "eklentiler", "swin2sr_x2.onnx")
+AI_MOTOR_PAKETI = "onnxruntime"
+AI_MODEL_MB = 21
+AI_MOTOR_MB = 15
+AI_KARO = 128  # bellek ve süre dengesi; büyütülürken kare kare işlenir
+AI_BINDIRME = 16  # karo eklerinde iz kalmasın diye örtüşme payı
+
+
+def ai_eklentisi_hazir_mi() -> tuple[bool, bool]:
+    """(hesaplama motoru var mı, model dosyası var mı) bilgisini döndürür."""
+    try:
+        import onnxruntime  # noqa: F401, PLC0415
+        motor = True
+    except ImportError:
+        motor = False
+    return motor, os.path.exists(AI_MODEL_DOSYASI)
+
+
+def ai_eklentisini_kur(bildir) -> None:
+    """Hesaplama motorunu ve modeli indirir. Hata durumunda Türkçe ValueError atar."""
+    motor, model = ai_eklentisi_hazir_mi()
+
+    if not motor:
+        bildir("Hesaplama motoru indiriliyor (~15 MB)...")
+        try:
+            sonuc = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet", AI_MOTOR_PAKETI],
+                timeout=1800,
+                **_SESSIZ,
+            )
+        except (OSError, subprocess.SubprocessError) as hata:
+            raise ValueError(f"Hesaplama motoru kurulamadı:\n{hata}") from hata
+        if sonuc.returncode != 0 or not ai_eklentisi_hazir_mi()[0]:
+            raise ValueError(
+                "Hesaplama motoru (onnxruntime) kurulamadı.\n"
+                "İnternet bağlantınızı kontrol edip tekrar deneyin."
+            )
+
+    if not model:
+        bildir(f"Büyütme modeli indiriliyor (~{AI_MODEL_MB} MB)...")
+        import urllib.error
+        import urllib.request
+
+        os.makedirs(os.path.dirname(AI_MODEL_DOSYASI), exist_ok=True)
+        gecici = AI_MODEL_DOSYASI + ".indiriliyor"
+        try:
+            istek = urllib.request.Request(
+                AI_MODEL_ADRESI, headers={"User-Agent": "PosterBasim/1.0"}
+            )
+            with urllib.request.urlopen(istek, timeout=120) as yanit, open(gecici, "wb") as dosya:
+                toplam = int(yanit.headers.get("Content-Length") or 0)
+                inen = 0
+                while parca := yanit.read(1024 * 256):
+                    dosya.write(parca)
+                    inen += len(parca)
+                    if toplam:
+                        bildir(f"Büyütme modeli indiriliyor... %{inen * 100 // toplam}")
+            os.replace(gecici, AI_MODEL_DOSYASI)
+        except (urllib.error.URLError, OSError) as hata:
+            if os.path.exists(gecici):
+                os.remove(gecici)
+            raise ValueError(f"Model indirilemedi:\n{hata}") from hata
+
+
+def _ai_oturumu():
+    import onnxruntime  # noqa: PLC0415
+
+    return onnxruntime.InferenceSession(
+        AI_MODEL_DOSYASI, providers=["CPUExecutionProvider"]
+    )
+
+
+def ai_karo_suresi() -> float:
+    """Tek bir karonun bu bilgisayarda kaç saniye sürdüğünü ölçer (kalibrasyon).
+
+    Süre donanıma göre 20 kat değişebildiği için sabit bir tahmin yanıltıcı olurdu;
+    kullanıcıya kendi makinesinde ölçülmüş süre gösterilir.
+    """
+    import numpy as np  # noqa: PLC0415
+
+    import time  # noqa: PLC0415
+
+    oturum = _ai_oturumu()
+    ad = oturum.get_inputs()[0].name
+    # Gerçek görüntüye benzesin diye rastgele veri; sıfır dolu girdi olduğundan hızlı ölçülür.
+    ornek = np.random.rand(1, 3, AI_KARO, AI_KARO).astype(np.float32)
+    oturum.run(None, {ad: ornek})  # ilk çağrı ısınma; ölçüme katılmaz
+    basla = time.time()
+    oturum.run(None, {ad: ornek})
+    # Karo kırpma, dizi dönüşümü ve birleştirme payı (ölçümle ~1.3 kat çıkıyor).
+    return (time.time() - basla) * 1.3
+
+
+def ai_karo_sayisi(img: Image.Image) -> int:
+    adim = AI_KARO - AI_BINDIRME
+    return max(1, -(-img.width // adim)) * max(1, -(-img.height // adim))
+
+
+def ai_ile_buyut(img: Image.Image, ilerleme=None, iptal=None) -> Image.Image:
+    """Görseli AI modeliyle 2 kat büyütür (karo karo işlenir).
+
+    ilerleme: (yapilan, toplam) alan geri çağırım. iptal: çağrıldığında True dönerse
+    işlem yarıda bırakılır ve None döner.
+    """
+    import numpy as np  # noqa: PLC0415
+
+    oturum = _ai_oturumu()
+    ad = oturum.get_inputs()[0].name
+    adim = AI_KARO - AI_BINDIRME
+    yarim = AI_BINDIRME // 2
+    sonuc = Image.new("RGB", (img.width * 2, img.height * 2))
+    toplam = ai_karo_sayisi(img)
+    yapilan = 0
+
+    for ust in range(0, img.height, adim):
+        for sol in range(0, img.width, adim):
+            if iptal is not None and iptal():
+                return None
+            sag = min(sol + AI_KARO, img.width)
+            alt = min(ust + AI_KARO, img.height)
+            karo = img.crop((sol, ust, sag, alt))
+            gercek_w, gercek_h = karo.size
+            dizi = np.asarray(karo, dtype=np.float32)
+            if (gercek_w, gercek_h) != (AI_KARO, AI_KARO):
+                # Model sabit ölçüde girdi ister; kenar karoları kenar pikseli
+                # tekrarlanarak tamamlanır, çıktıda bu dolgu geri kırpılır.
+                dizi = np.pad(
+                    dizi,
+                    ((0, AI_KARO - gercek_h), (0, AI_KARO - gercek_w), (0, 0)),
+                    mode="edge",
+                )
+            girdi = dizi.transpose(2, 0, 1)[None] / 255.0
+            cikti = oturum.run(None, {ad: girdi})[0][0].transpose(1, 2, 0)
+            buyuk = Image.fromarray((np.clip(cikti, 0, 1) * 255).astype(np.uint8))
+            buyuk = buyuk.crop((0, 0, gercek_w * 2, gercek_h * 2))
+
+            # Örtüşen kenarlardan yarım pay kırpılır; böylece karo ekleri görünmez.
+            kirp_sol = 0 if sol == 0 else yarim * 2
+            kirp_ust = 0 if ust == 0 else yarim * 2
+            sonuc.paste(
+                buyuk.crop((kirp_sol, kirp_ust, buyuk.width, buyuk.height)),
+                (sol * 2 + kirp_sol, ust * 2 + kirp_ust),
+            )
+            yapilan += 1
+            if ilerleme is not None:
+                ilerleme(yapilan, toplam)
+    return sonuc
+
+
 # Hazır ayarlar: (yarıçap, miktar %, eşik, gürültü, otomatik düzelt)
 ONAYARLAR = {
     "Fotoğraf": (1.2, 110, 3, "Kapalı", True),
@@ -1027,6 +1183,13 @@ class SunmesizBaskiApp:
             variable=self.buyut_var,
             command=self.cozunurlugu_degerlendir,
         ).pack(anchor=tk.W, pady=(0, 6))
+
+        ttk.Button(
+            ayarlar, text="AI ile Büyüt (eklenti gerekir)", command=self.ai_ile_buyut_istegi
+        ).pack(fill=tk.X, pady=(4, 2))
+        self.ai_durum_lbl = ttk.Label(ayarlar, text="", wraplength=220, foreground="gray")
+        self.ai_durum_lbl.pack(anchor=tk.W, pady=(0, 8))
+        self.ai_durumunu_yaz()
 
         ttk.Label(ayarlar, text="Gürültü Azaltma:").pack(anchor=tk.W)
         self.gurultu_combo = ttk.Combobox(
@@ -1642,6 +1805,212 @@ class SunmesizBaskiApp:
         if self._filtre_isi is not None:
             self.root.after_cancel(self._filtre_isi)
         self._filtre_isi = self.root.after(60, self.onizlemeyi_guncelle)
+
+    # ------------------------------------------------------------------ AI büyütme
+    def ai_durumunu_yaz(self):
+        motor, model = ai_eklentisi_hazir_mi()
+        if motor and model:
+            self.ai_durum_lbl.config(
+                text="AI eklentisi hazır — düşük çözünürlüklü görsellerde kullanabilirsiniz.",
+                foreground="#15803d",
+            )
+        else:
+            self.ai_durum_lbl.config(
+                text="AI eklentisi kurulu değil; AI büyütme yapılamaz. "
+                "Klasik akıllı büyütme çalışmaya devam ediyor.",
+                foreground="gray",
+            )
+
+    def ai_ile_buyut_istegi(self):
+        if self.orijinal_img is None:
+            messagebox.showinfo("AI ile Büyüt", "Önce bir görsel açın.")
+            return
+
+        motor, model = ai_eklentisi_hazir_mi()
+        if not (motor and model):
+            if not self._ai_eklentisini_sor():
+                return
+            if not all(ai_eklentisi_hazir_mi()):
+                return
+
+        # Süre donanıma göre 20 kata kadar değişiyor; bu bilgisayarda ölçüp soruyoruz.
+        self.durum_lbl.config(text="Bilgisayarınızın hızı ölçülüyor...")
+        self.root.update_idletasks()
+        try:
+            karo_suresi = ai_karo_suresi()
+        except Exception as hata:  # onnxruntime kendi hata tiplerini kullanır
+            messagebox.showerror("AI ile Büyüt", f"Hesaplama motoru çalıştırılamadı:\n{hata}")
+            self.durum_lbl.config(text="")
+            return
+
+        toplam_karo = ai_karo_sayisi(self.orijinal_img)
+        tahmin_sn = karo_suresi * toplam_karo
+        dakika = tahmin_sn / 60
+        sure_metni = f"{tahmin_sn:.0f} saniye" if tahmin_sn < 90 else f"{dakika:.0f} dakika"
+        self.durum_lbl.config(text="")
+
+        if not messagebox.askyesno(
+            "AI ile Büyüt",
+            f"Görsel: {self.orijinal_img.width} × {self.orijinal_img.height} piksel\n"
+            f"Sonuç: {self.orijinal_img.width * 2} × {self.orijinal_img.height * 2} piksel "
+            "(2 kat)\n\n"
+            f"Bu bilgisayarda ölçülen tahmini süre: {sure_metni}\n"
+            f"({toplam_karo} parça hâlinde işlenecek; istediğiniz an durdurabilirsiniz.)\n\n"
+            "İşlem sırasında program bekleyecek. Devam edilsin mi?",
+        ):
+            return
+
+        self._ai_buyutmeyi_calistir(toplam_karo)
+
+    def _ai_eklentisini_sor(self) -> bool:
+        """Eklentinin ne olduğunu, niçin ayrı olduğunu anlatır ve indirme izni ister."""
+        onay = messagebox.askyesno(
+            "AI ile Büyütme — bilmeniz gerekenler",
+            "BU NEDİR?\n"
+            "Yapay zekâ ile büyütme, küçük bir görseli büyütürken kaybolan detayı tahmin\n"
+            "ederek yeniden üretir. Klasik büyütme yalnızca pikselleri yumuşatır.\n\n"
+            "NEDEN AYRI EKLENTİ?\n"
+            f"Bu iş için hesaplama motoru (~{AI_MOTOR_MB} MB) ve model dosyası "
+            f"(~{AI_MODEL_MB} MB) gerekir.\n"
+            "Programın içine konsaydı, bu özelliği hiç kullanmayacak herkes de indirmek\n"
+            "zorunda kalırdı. EKLENTİ KURULMADAN AI BÜYÜTME YAPILAMAZ.\n\n"
+            "NE ZAMAN İŞE YARAR?\n"
+            "Görseliniz seçtiğiniz poster boyu için küçükse (kırmızı uyarı) gözle görülür\n"
+            "fark yaratır. Zaten yeterli çözünürlükteki görsellerde gereksizdir.\n\n"
+            "NEYE DİKKAT?\n"
+            "AI, var olmayan detayı uydurur: küçük yazılar, yüz hatları ve logolar\n"
+            "olduğundan farklı çıkabilir. Belge ve metin ağırlıklı işlerde klasik büyütme\n"
+            "daha güvenlidir.\n\n"
+            f"İNDİRİLECEK: toplam ~{AI_MOTOR_MB + AI_MODEL_MB} MB, yalnızca bir kez.\n"
+            "KAYNAK: huggingface.co/Xenova/swin2SR-classical-sr-x2-64 (Apache-2.0, açık kaynak)\n\n"
+            "İndirmezseniz program aynen çalışır; klasik akıllı büyütme devrede kalır.\n\n"
+            "Eklenti şimdi indirilsin mi?",
+        )
+        if not onay:
+            return False
+
+        import queue
+        import threading
+
+        kuyruk: queue.Queue = queue.Queue()
+        pencere, etiket = self._islem_penceresi("AI eklentisi kuruluyor", iptal_komutu=None)
+
+        def kur():
+            try:
+                ai_eklentisini_kur(lambda m: kuyruk.put(("bilgi", m)))
+                kuyruk.put(("bitti", ""))
+            except ValueError as hata:
+                kuyruk.put(("hata", str(hata)))
+
+        threading.Thread(target=kur, daemon=True).start()
+        sonuc = {"durum": None}
+
+        def yokla():
+            try:
+                durum, deger = kuyruk.get_nowait()
+            except queue.Empty:
+                pencere.after(150, yokla)
+                return
+            if durum == "bilgi":
+                etiket.config(text=deger)
+                pencere.after(150, yokla)
+                return
+            sonuc["durum"] = durum
+            sonuc["mesaj"] = deger
+            pencere.destroy()
+
+        pencere.after(150, yokla)
+        self.root.wait_window(pencere)
+        self.ai_durumunu_yaz()
+
+        if sonuc["durum"] == "hata":
+            messagebox.showerror("AI eklentisi", sonuc["mesaj"])
+            return False
+        return sonuc["durum"] == "bitti"
+
+    def _islem_penceresi(self, baslik: str, iptal_komutu):
+        """Ortada duran küçük ilerleme penceresi döndürür (pencere, etiket)."""
+        pencere = tk.Toplevel(self.root)
+        pencere.title(baslik)
+        pencere.transient(self.root)
+        pencere.resizable(False, False)
+        pencere.protocol("WM_DELETE_WINDOW", lambda: None)  # yanlışlıkla kapatılmasın
+        cerceve = ttk.Frame(pencere, padding=20)
+        cerceve.pack(fill=tk.BOTH, expand=True)
+        etiket = ttk.Label(cerceve, text="Hazırlanıyor...", width=48)
+        etiket.pack(anchor=tk.W)
+        if iptal_komutu is not None:
+            ttk.Button(cerceve, text="Durdur", command=iptal_komutu).pack(pady=(12, 0))
+        pencere.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - pencere.winfo_width()) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - pencere.winfo_height()) // 3
+        pencere.geometry(f"+{max(0, x)}+{max(0, y)}")
+        pencere.grab_set()
+        return pencere, etiket
+
+    def _ai_buyutmeyi_calistir(self, toplam_karo: int):
+        import queue
+        import threading
+        import time
+
+        kuyruk: queue.Queue = queue.Queue()
+        durduruldu = {"evet": False}
+        pencere, etiket = self._islem_penceresi(
+            "AI ile büyütülüyor", lambda: durduruldu.__setitem__("evet", True)
+        )
+
+        def calis():
+            try:
+                sonuc = ai_ile_buyut(
+                    self.orijinal_img,
+                    ilerleme=lambda y, t: kuyruk.put(("ilerleme", (y, t))),
+                    iptal=lambda: durduruldu["evet"],
+                )
+                kuyruk.put(("iptal" if sonuc is None else "bitti", sonuc))
+            except Exception as hata:
+                kuyruk.put(("hata", str(hata)))
+
+        baslangic = time.time()
+        threading.Thread(target=calis, daemon=True).start()
+
+        def yokla():
+            try:
+                durum, deger = kuyruk.get_nowait()
+            except queue.Empty:
+                pencere.after(120, yokla)
+                return
+            if durum == "ilerleme":
+                yapilan, toplam = deger
+                # Kalan süre gerçek hıza göre güncellenir; baştaki tahmin şaşarsa kendini düzeltir.
+                gecen = time.time() - baslangic
+                kalan = (gecen / yapilan) * (toplam - yapilan) if yapilan else 0
+                kalan_metni = (
+                    f"{kalan:.0f} saniye" if kalan < 90 else f"{kalan / 60:.0f} dakika"
+                )
+                etiket.config(
+                    text=f"İşleniyor: {yapilan} / {toplam} parça  (%{yapilan * 100 // toplam})"
+                    f"\nTahmini kalan süre: {kalan_metni}"
+                )
+                pencere.after(120, yokla)
+                return
+
+            pencere.destroy()
+            if durum == "hata":
+                messagebox.showerror("AI ile Büyüt", f"Büyütme başarısız:\n{deger}")
+                return
+            if durum == "iptal":
+                self.durum_lbl.config(text="AI büyütme durduruldu.")
+                return
+            self.orijinal_img = deger
+            self.onizleme_kaynak = deger.copy()
+            self.onizleme_kaynak.thumbnail(ONIZLEME_CALISMA_BOYUTU, Image.Resampling.LANCZOS)
+            self.durum_lbl.config(
+                text=f"AI ile büyütüldü: {deger.width} x {deger.height} piksel"
+            )
+            self.cozunurlugu_degerlendir()
+            self.onizlemeyi_guncelle()
+
+        pencere.after(120, yokla)
 
     def onayari_uygula(self, _olay=None):
         """Hazır ayar seçilince sürgüleri ve kutucukları doldurur."""

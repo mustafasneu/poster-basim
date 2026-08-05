@@ -36,6 +36,11 @@ yazmaz.
 - **Çözünürlük uyarısı** — seçtiğiniz sayfa sayısında posterin gerçek ölçüsünü ve baskı
   DPI'ını hesaplar; düşükse *baskıdan önce* uyarır. İsteğe bağlı **akıllı büyütme**
   (Lanczos + keskinleştirme) devreye girer.
+- **AI ile büyütme (isteğe bağlı eklenti)** — küçük görsellerde kaybolan detayı yeniden
+  üreten Swin2SR modeli. Programla gelmez; kullanıcı ilk kullanımda ~36 MB'lık eklentiyi
+  kendisi indirir, indirmezse program klasik büyütmeyle çalışmaya devam eder. İşlem öncesi
+  kendi makinenizde ölçülmüş süre tahmini sunulur, işlem durdurulabilir. Görseller
+  bilgisayardan çıkmaz.
 - **Dürüst önizleme** — keskinleştirme yarıçapı önizleme küçültmesine göre ölçeklenir;
   ekranda gördüğünüz keskinlik kâğıttakiyle aynıdır.
 - **Baskı kalitesi** — parçalar JPEG kalite 95, renk alt örneklemesi kapalı (4:4:4),
