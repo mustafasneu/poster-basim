@@ -11,13 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            ad: Windows
-          - os: macos-latest
-            ad: macOS
-          - os: ubuntu-latest
-            ad: Linux
+        os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -28,7 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: Linux tkinter
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y python3-tk
 
       - name: Bagimliliklar
@@ -38,43 +32,17 @@ jobs:
 
       - name: Paketi uret
         shell: bash
-        run: |
-          pyinstaller --noconfirm --clean --onefile --windowed \
-            --name "Poster Basim" \
-            --icon "$( [ "${{ matrix.os }}" = "windows-latest" ] && echo simge.ico || echo simge.png )" \
-            --add-data "simge.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." \
-            --collect-all pypdfium2 \
-            --collect-all rawpy \
-            --collect-all pillow_heif \
-            --collect-all onnxruntime \
-            poster_bolme.py
-
-      - name: macOS zip
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd dist
-          zip -qry "Poster Basim-macOS.zip" "Poster Basim.app"
-
-      - name: Kilavuzu ekle
-        shell: bash
-        run: cp KULLANIM_KILAVUZU.pdf dist/ || true
+        run: bash paket_uret.sh
 
       - name: Paketi yukle
         uses: actions/upload-artifact@v4
         with:
-          name: PosterBasim-${{ matrix.ad }}
-          path: |
-            dist/Poster Basim.exe
-            dist/Poster Basim-macOS.zip
-            dist/Poster Basim
-            dist/KULLANIM_KILAVUZU.pdf
+          name: PosterBasim-${{ runner.os }}
+          path: dist/
           if-no-files-found: warn
 
       - name: Etiketliyse Releases'a ekle
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/Poster Basim.exe
-            dist/Poster Basim-macOS.zip
-            dist/Poster Basim
+          files: dist/*
