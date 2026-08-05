@@ -33,6 +33,28 @@ HEIC_PAKETI = "pillow-heif>=0.16"
 RAW_PAKETI = "rawpy>=0.21"
 PROJE_DIZINI = os.path.dirname(os.path.abspath(__file__))
 VENV_DIZINI = os.path.join(PROJE_DIZINI, ".venv")
+
+# PyInstaller ile tek dosyalık pakete dönüştürüldüğünde program geçici bir klasörden
+# çalışır: bağımlılıklar zaten pakette olduğu için kurulum adımları atlanır, kalıcı
+# dosyalar (AI modeli) kullanıcının uygulama verisi klasörüne yazılır.
+PAKETLENMIS = getattr(sys, "frozen", False)
+KAYNAK_DIZINI = getattr(sys, "_MEIPASS", PROJE_DIZINI)  # simge gibi salt-okunur dosyalar
+
+
+def veri_dizini() -> str:
+    """Kalıcı dosyalar için kullanıcıya ait klasör (paketlenmiş sürümde şart)."""
+    if not PAKETLENMIS:
+        return PROJE_DIZINI
+    ev = os.path.expanduser("~")
+    if os.name == "nt":
+        kok = os.environ.get("LOCALAPPDATA", os.path.join(ev, "AppData", "Local"))
+    elif sys.platform == "darwin":
+        kok = os.path.join(ev, "Library", "Application Support")
+    else:
+        kok = os.environ.get("XDG_DATA_HOME", os.path.join(ev, ".local", "share"))
+    yol = os.path.join(kok, "PosterBasim")
+    os.makedirs(yol, exist_ok=True)
+    return yol
 YENIDEN_BASLATMA_ISARETI = "POSTER_BOLME_KURULUM"
 
 WINDOWS = os.name == "nt"
@@ -227,6 +249,8 @@ def _kurulum_penceresini_kapat():
 
 def _bagimliliklari_hazirla():
     """Eksikler varsa kurar ve programı hazır ortamla yeniden başlatır."""
+    if PAKETLENMIS:  # paket zaten her şeyi içeriyor
+        return
     try:  # her şey yerindeyse hiçbir şey yapma
         import tkinter  # noqa: F401
         import PIL  # noqa: F401
@@ -674,7 +698,7 @@ def cikis_klasoru_hazirla(klasor_adi: str) -> str:
 
 def pencere_simgesini_ayarla(root: tk.Misc):
     """Program simgesini pencereye/görev çubuğuna uygular; referansı geri döndürür."""
-    simge_yolu = os.path.join(PROJE_DIZINI, "simge.png")
+    simge_yolu = os.path.join(KAYNAK_DIZINI, "simge.png")
     if not os.path.exists(simge_yolu):
         return None
     try:
@@ -878,7 +902,7 @@ AI_MODEL_ADRESI = (
     "https://huggingface.co/Xenova/swin2SR-classical-sr-x2-64/resolve/main/onnx/"
     "model_quantized.onnx"
 )
-AI_MODEL_DOSYASI = os.path.join(PROJE_DIZINI, "eklentiler", "swin2sr_x2.onnx")
+AI_MODEL_DOSYASI = os.path.join(veri_dizini(), "eklentiler", "swin2sr_x2.onnx")
 AI_MOTOR_PAKETI = "onnxruntime"
 AI_MODEL_MB = 21
 AI_MOTOR_MB = 15
@@ -899,6 +923,12 @@ def ai_eklentisi_hazir_mi() -> tuple[bool, bool]:
 def ai_eklentisini_kur(bildir) -> None:
     """Hesaplama motorunu ve modeli indirir. Hata durumunda Türkçe ValueError atar."""
     motor, model = ai_eklentisi_hazir_mi()
+
+    if not motor and PAKETLENMIS:
+        raise ValueError(
+            "Bu sürümde AI hesaplama motoru bulunamadı.\n"
+            "Programın kaynak koddan çalışan sürümünü kullanın ya da güncel paketi indirin."
+        )
 
     if not motor:
         bildir("Hesaplama motoru indiriliyor (~15 MB)...")

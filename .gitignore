@@ -15,3 +15,8 @@ desktop.ini
 
 # Programın ürettiği çıktılar
 Bolu_Parcalanmis_Resimler/
+
+# PyInstaller çıktıları
+build/
+dist/
+*.spec
