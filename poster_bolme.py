@@ -307,7 +307,7 @@ import tkinter as tk  # noqa: E402
 from datetime import datetime  # noqa: E402
 from tkinter import filedialog, font as tkfont, messagebox, ttk  # noqa: E402
 
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageTk  # noqa: E402
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageStat, ImageTk  # noqa: E402
 from reportlab.lib.pagesizes import A4, landscape  # noqa: E402
 from reportlab.pdfgen import canvas  # noqa: E402
 
@@ -721,6 +721,103 @@ def masaustu_yolu() -> str:
     return ev
 
 
+# ------------------------------------------------------------------ görüntü iyileştirme
+A4_INC = (210 / 25.4, 297 / 25.4)  # A4'ün inç cinsinden kısa ve uzun kenarı
+IYI_DPI = 200  # bu değerin üstü baskıda net görünür
+KABUL_DPI = 120  # bunun altı yakından bakınca belirgin şekilde pikselli
+
+
+def otomatik_duzelt(img: Image.Image) -> Image.Image:
+    """Seviye (kontrast) ve beyaz dengesini otomatik düzeltir.
+
+    Telefon fotoğrafları ve taramalar çoğu zaman soluk ve renk sapmalıdır; bu iki
+    düzeltme, elle sürgü oynatmadan en büyük kazancı sağlar.
+    """
+    duzeltilmis = ImageOps.autocontrast(img, cutoff=0.5)  # uçlardaki %0.5'i kırparak seviye
+
+    # Gri-dünya varsayımı: sahnenin ortalaması nötr gri olmalı; kanal ortalamaları
+    # buna göre eşitlenince mavi/sarı renk sapması kalkar.
+    kanallar = duzeltilmis.split()
+    if len(kanallar) < 3:
+        return duzeltilmis
+    ortalamalar = [ImageStat.Stat(k).mean[0] for k in kanallar[:3]]
+    hedef = sum(ortalamalar) / 3
+    if min(ortalamalar) < 1:  # neredeyse siyah görüntüde oran hesabı anlamsız
+        return duzeltilmis
+    olcekli = [
+        k.point(lambda d, o=hedef / m: min(255, int(d * o))) for k, m in zip(kanallar, ortalamalar)
+    ]
+    return Image.merge("RGB", olcekli)
+
+
+def gurultu_azalt(img: Image.Image, seviye: int) -> Image.Image:
+    """Gürültüyü azaltır (0 kapalı, 1 hafif, 2 orta, 3 güçlü).
+
+    Büyütülecek görsellerde şart: gürültü de büyür ve baskıda kum gibi görünür.
+    """
+    if seviye <= 0:
+        return img
+    pencere = 3 if seviye < 3 else 5
+    suzulmus = img.filter(ImageFilter.MedianFilter(pencere))
+    if seviye == 1:  # hafif: detayı korumak için yarı yarıya karıştırılır
+        return Image.blend(img, suzulmus, 0.5)
+    return suzulmus
+
+
+def keskinlestir(img: Image.Image, yaricap: float, miktar: float, esik: float) -> Image.Image:
+    """Unsharp mask — baskı için doğru keskinleştirme yöntemi.
+
+    yaricap: etkilenen kenar kalınlığı (piksel), miktar: güç (%), esik: bu farkın
+    altındaki değişimlere dokunulmaz (düz alanlardaki gürültü keskinleşmesin diye).
+    """
+    if miktar <= 0 or yaricap <= 0:
+        return img
+    return img.filter(
+        ImageFilter.UnsharpMask(radius=yaricap, percent=int(miktar), threshold=int(esik))
+    )
+
+
+def poster_olculeri_inc(sutun: int, satir: int, dikey: bool) -> tuple[float, float]:
+    """Seçilen matrisin inç cinsinden toplam poster ölçüsü."""
+    kisa, uzun = A4_INC
+    sayfa_w, sayfa_h = (kisa, uzun) if dikey else (uzun, kisa)
+    return sutun * sayfa_w, satir * sayfa_h
+
+
+def baski_cozunurlugu(img: Image.Image, sutun: int, satir: int, dikey: bool) -> float:
+    """Görselin bu matriste basıldığında ulaşacağı gerçek DPI değeri."""
+    genislik_inc, yukseklik_inc = poster_olculeri_inc(sutun, satir, dikey)
+    if genislik_inc <= 0 or yukseklik_inc <= 0:
+        return 0.0
+    return min(img.width / genislik_inc, img.height / yukseklik_inc)
+
+
+def akilli_buyut(img: Image.Image, hedef_dpi: int, sutun: int, satir: int, dikey: bool):
+    """Görseli hedef DPI'a ulaşacak şekilde büyütür (Lanczos + hafif keskinleştirme).
+
+    Var olmayan detayı üretmez; pikselleri blok blok değil yumuşak geçişli gösterir.
+    Aşırı büyütme kalite kazandırmadığı için en fazla 4 katla sınırlıdır.
+    """
+    mevcut = baski_cozunurlugu(img, sutun, satir, dikey)
+    if mevcut <= 0 or mevcut >= hedef_dpi:
+        return img, 1.0
+    kat = min(hedef_dpi / mevcut, 4.0)
+    yeni = (max(1, round(img.width * kat)), max(1, round(img.height * kat)))
+    buyutulmus = img.resize(yeni, Image.Resampling.LANCZOS)
+    # Büyütme yumuşatır; hafif unsharp ile kenarlar geri toplanır.
+    return keskinlestir(buyutulmus, yaricap=1.0, miktar=60, esik=3), kat
+
+
+# Hazır ayarlar: (yarıçap, miktar %, eşik, gürültü, otomatik düzelt)
+ONAYARLAR = {
+    "Fotoğraf": (1.2, 110, 3, "Kapalı", True),
+    "Grafik / Afiş": (0.8, 150, 0, "Kapalı", False),
+    "Tarama / Eski baskı": (1.5, 90, 4, "Orta", True),
+    "Telefon fotoğrafı": (1.0, 120, 4, "Hafif", True),
+    "Dokunma (ham)": (0.0, 0, 0, "Kapalı", False),
+}
+
+
 def dogal_anahtar(metin: str):
     """'resim2' < 'resim10' olacak şekilde sıralama anahtarı (sözlük sırası yanıltır)."""
     import re
@@ -871,12 +968,16 @@ class SunmesizBaskiApp:
         ).pack(pady=15, anchor=tk.W)
 
         ttk.Label(ayarlar, text="Sütun Sayısı (Yatay - X):").pack(anchor=tk.W)
-        self.sutun_spin = ttk.Spinbox(ayarlar, from_=1, to=20, width=10)
+        self.sutun_spin = ttk.Spinbox(
+            ayarlar, from_=1, to=20, width=10, command=self.cozunurlugu_degerlendir
+        )
         self.sutun_spin.set(4)
         self.sutun_spin.pack(pady=5, anchor=tk.W)
 
         ttk.Label(ayarlar, text="Satır Sayısı (Dikey - Y):").pack(anchor=tk.W)
-        self.satir_spin = ttk.Spinbox(ayarlar, from_=1, to=20, width=10)
+        self.satir_spin = ttk.Spinbox(
+            ayarlar, from_=1, to=20, width=10, command=self.cozunurlugu_degerlendir
+        )
         self.satir_spin.set(2)
         self.satir_spin.pack(pady=5, anchor=tk.W)
 
@@ -886,6 +987,10 @@ class SunmesizBaskiApp:
         )
         self.yon_combo.set("Yatay (Landscape)")
         self.yon_combo.pack(fill=tk.X, pady=5)
+        self.yon_combo.bind("<<ComboboxSelected>>", self.cozunurlugu_degerlendir)
+
+        for kutu in (self.sutun_spin, self.satir_spin):
+            kutu.bind("<KeyRelease>", self.cozunurlugu_degerlendir)
 
         ttk.Label(ayarlar, text="Çakışma Payı (Piksel Bindirme):").pack(anchor=tk.W)
         self.cakisma_spin = ttk.Spinbox(ayarlar, from_=0, to=100, width=10)
@@ -893,13 +998,57 @@ class SunmesizBaskiApp:
         self.cakisma_spin.pack(pady=5, anchor=tk.W)
 
         ttk.Label(
-            ayarlar, text="--- 3. DETAYLI İYİLEŞTİRME ---", font=(self.font_ailesi, 11, "bold")
+            ayarlar, text="--- 3. BASKI İYİLEŞTİRME ---", font=(self.font_ailesi, 11, "bold")
         ).pack(pady=15, anchor=tk.W)
 
-        self.keskinlik_slider = self._surgu_ekle(ayarlar, "Detay Netliği (Keskinlik):", 1.0, 4.0)
-        self.kontrast_slider = self._surgu_ekle(ayarlar, "Dinamik Kontrast:", 0.5, 2.5)
-        self.renk_slider = self._surgu_ekle(ayarlar, "Renk Canlılığı (Saturasyon):", 0.5, 2.5)
-        self.parlaklik_slider = self._surgu_ekle(ayarlar, "Genel Parlaklık:", 0.5, 2.0)
+        self.cozunurluk_lbl = ttk.Label(ayarlar, text="", wraplength=220, foreground="gray")
+        self.cozunurluk_lbl.pack(anchor=tk.W, pady=(0, 8))
+
+        ttk.Label(ayarlar, text="Hazır Ayar:").pack(anchor=tk.W)
+        self.onayar_combo = ttk.Combobox(
+            ayarlar, values=list(ONAYARLAR), state="readonly"
+        )
+        self.onayar_combo.set("Fotoğraf")
+        self.onayar_combo.pack(fill=tk.X, pady=5)
+        self.onayar_combo.bind("<<ComboboxSelected>>", self.onayari_uygula)
+
+        self.otomatik_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            ayarlar,
+            text="Otomatik düzelt (seviye + beyaz dengesi)",
+            variable=self.otomatik_var,
+            command=self.filtre_planla,
+        ).pack(anchor=tk.W, pady=(6, 2))
+
+        self.buyut_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            ayarlar,
+            text="Düşük çözünürlükte akıllı büyüt",
+            variable=self.buyut_var,
+            command=self.cozunurlugu_degerlendir,
+        ).pack(anchor=tk.W, pady=(0, 6))
+
+        ttk.Label(ayarlar, text="Gürültü Azaltma:").pack(anchor=tk.W)
+        self.gurultu_combo = ttk.Combobox(
+            ayarlar, values=["Kapalı", "Hafif", "Orta", "Güçlü"], state="readonly"
+        )
+        self.gurultu_combo.set("Kapalı")
+        self.gurultu_combo.pack(fill=tk.X, pady=5)
+        self.gurultu_combo.bind("<<ComboboxSelected>>", self.filtre_planla)
+
+        ttk.Label(
+            ayarlar, text="Keskinleştirme (unsharp mask):", font=(self.font_ailesi, 10, "bold")
+        ).pack(anchor=tk.W, pady=(10, 2))
+        self.yaricap_slider = self._surgu_ekle(ayarlar, "Yarıçap (piksel):", 0.0, 5.0, 1.2)
+        self.miktar_slider = self._surgu_ekle(ayarlar, "Miktar (%):", 0.0, 300.0, 110.0)
+        self.esik_slider = self._surgu_ekle(ayarlar, "Eşik (gürültüyü koru):", 0.0, 20.0, 3.0)
+
+        ttk.Label(ayarlar, text="Renk ve ton:", font=(self.font_ailesi, 10, "bold")).pack(
+            anchor=tk.W, pady=(10, 2)
+        )
+        self.kontrast_slider = self._surgu_ekle(ayarlar, "Kontrast:", 0.5, 2.5, 1.0)
+        self.renk_slider = self._surgu_ekle(ayarlar, "Renk Canlılığı:", 0.5, 2.5, 1.0)
+        self.parlaklik_slider = self._surgu_ekle(ayarlar, "Parlaklık:", 0.5, 2.0, 1.0)
 
         ttk.Button(ayarlar, text="Ayarları Sıfırla", command=self.ayarlari_sifirla).pack(
             fill=tk.X, pady=(8, 4)
@@ -1057,13 +1206,28 @@ class SunmesizBaskiApp:
             else:
                 self.onizlemeyi_guncelle()
 
-    def _surgu_ekle(self, ust: ttk.Frame, etiket: str, alt_sinir: float, ust_sinir: float):
-        ttk.Label(ust, text=etiket).pack(anchor=tk.W)
-        surgu = ttk.Scale(
-            ust, from_=alt_sinir, to=ust_sinir, orient=tk.HORIZONTAL, command=self.filtre_planla
-        )
-        surgu.set(1.0)
-        surgu.pack(fill=tk.X, pady=5)
+    def _surgu_ekle(
+        self,
+        ust: ttk.Frame,
+        etiket: str,
+        alt_sinir: float,
+        ust_sinir: float,
+        baslangic: float = 1.0,
+    ):
+        satir = ttk.Frame(ust)
+        satir.pack(fill=tk.X)
+        ttk.Label(satir, text=etiket).pack(side=tk.LEFT, anchor=tk.W)
+        deger_lbl = ttk.Label(satir, text="", foreground="gray", width=6, anchor=tk.E)
+        deger_lbl.pack(side=tk.RIGHT)
+
+        def degisti(_deger=None):
+            deger_lbl.config(text=f"{surgu.get():.1f}")
+            self.filtre_planla()
+
+        surgu = ttk.Scale(ust, from_=alt_sinir, to=ust_sinir, orient=tk.HORIZONTAL, command=degisti)
+        surgu.set(baslangic)
+        surgu.pack(fill=tk.X, pady=(0, 6))
+        deger_lbl.config(text=f"{baslangic:.1f}")
         return surgu
 
     # ------------------------------------------------------------------ eylemler
@@ -1462,17 +1626,14 @@ class SunmesizBaskiApp:
         self.dosya_lbl.config(text=os.path.basename(secilen_yol), foreground="black")
         self.durum_lbl.config(text=f"Kaynak çözünürlük: {img.width} x {img.height} piksel")
         self.ayarlari_sifirla()
+        self.cozunurlugu_degerlendir()
         self.kaydet_btn.config(state=tk.NORMAL)
 
     def ayarlari_sifirla(self):
-        for surgu in (
-            self.keskinlik_slider,
-            self.kontrast_slider,
-            self.renk_slider,
-            self.parlaklik_slider,
-        ):
+        for surgu in (self.kontrast_slider, self.renk_slider, self.parlaklik_slider):
             surgu.set(1.0)
-        self.filtre_planla()
+        self.onayar_combo.set("Fotoğraf")
+        self.onayari_uygula()
 
     def filtre_planla(self, _event=None):
         """Sürgü hareketini geciktirerek uygular (her pikselde yeniden işlemeyi önler)."""
@@ -1482,21 +1643,90 @@ class SunmesizBaskiApp:
             self.root.after_cancel(self._filtre_isi)
         self._filtre_isi = self.root.after(60, self.onizlemeyi_guncelle)
 
-    def filtreleri_uygula(self, img: Image.Image) -> Image.Image:
-        if self.keskinlik_slider.get() > 1.0:
-            img = ImageEnhance.Sharpness(img).enhance(self.keskinlik_slider.get())
-            img = img.filter(ImageFilter.DETAIL)
+    def onayari_uygula(self, _olay=None):
+        """Hazır ayar seçilince sürgüleri ve kutucukları doldurur."""
+        ayar = ONAYARLAR.get(self.onayar_combo.get())
+        if not ayar:
+            return
+        yaricap, miktar, esik, gurultu, otomatik = ayar
+        self.yaricap_slider.set(yaricap)
+        self.miktar_slider.set(miktar)
+        self.esik_slider.set(esik)
+        self.gurultu_combo.set(gurultu)
+        self.otomatik_var.set(otomatik)
+        self.filtre_planla()
+
+    def cozunurlugu_degerlendir(self, *_):
+        """Seçilen matriste görselin kaç DPI'da basılacağını hesaplayıp uyarır."""
+        if self.orijinal_img is None or self.mod.get() != "poster":
+            self.cozunurluk_lbl.config(text="")
+            return
+        try:
+            sutun = int(self.sutun_spin.get())
+            satir = int(self.satir_spin.get())
+        except (ValueError, tk.TclError):
+            return
+        dikey = "Dikey" in self.yon_combo.get()
+        dpi = baski_cozunurlugu(self.orijinal_img, sutun, satir, dikey)
+        en, boy = poster_olculeri_inc(sutun, satir, dikey)
+        olcu = f"{en * 2.54:.0f} × {boy * 2.54:.0f} cm"
+
+        if dpi >= IYI_DPI:
+            self.cozunurluk_lbl.config(
+                text=f"Poster {olcu} · baskı {dpi:.0f} DPI — çözünürlük yeterli.",
+                foreground="#15803d",
+            )
+        elif dpi >= KABUL_DPI:
+            self.cozunurluk_lbl.config(
+                text=f"Poster {olcu} · baskı {dpi:.0f} DPI — kabul edilebilir; "
+                "birkaç adım uzaktan bakıldığında sorun görünmez.",
+                foreground="#b45309",
+            )
+        else:
+            ek = " Akıllı büyütme açık." if self.buyut_var.get() else ""
+            self.cozunurluk_lbl.config(
+                text=f"Poster {olcu} · baskı {dpi:.0f} DPI — DÜŞÜK. Yakından bakınca "
+                f"pikselli görünür. Sayfa sayısını azaltın ya da daha büyük bir görsel "
+                f"kullanın.{ek}",
+                foreground="#b91c1c",
+            )
+
+    def _gurultu_seviyesi(self) -> int:
+        return {"Kapalı": 0, "Hafif": 1, "Orta": 2, "Güçlü": 3}.get(self.gurultu_combo.get(), 0)
+
+    def renk_ve_gurultu(self, img: Image.Image) -> Image.Image:
+        """Keskinleştirme dışındaki düzeltmeler (keskinleştirme en sona bırakılır)."""
+        if self.otomatik_var.get():
+            img = otomatik_duzelt(img)
+        img = gurultu_azalt(img, self._gurultu_seviyesi())
         img = ImageEnhance.Contrast(img).enhance(self.kontrast_slider.get())
         img = ImageEnhance.Color(img).enhance(self.renk_slider.get())
-        img = ImageEnhance.Brightness(img).enhance(self.parlaklik_slider.get())
-        return img
+        return ImageEnhance.Brightness(img).enhance(self.parlaklik_slider.get())
+
+    def keskinlestirmeyi_uygula(self, img: Image.Image, olcek: float = 1.0) -> Image.Image:
+        """Unsharp mask uygular. olcek, önizleme küçültmesini telafi eder."""
+        yaricap = self.yaricap_slider.get() * olcek
+        if yaricap < 0.3:  # bu kadar küçük yarıçap görünür bir etki yapmaz
+            return img
+        return keskinlestir(img, yaricap, self.miktar_slider.get(), self.esik_slider.get())
+
+    def filtreleri_uygula(self, img: Image.Image) -> Image.Image:
+        """Geriye dönük tek adımlık uygulama (kaynak çözünürlükte)."""
+        return self.keskinlestirmeyi_uygula(self.renk_ve_gurultu(img))
 
     def onizlemeyi_guncelle(self):
         self._filtre_isi = None
         if self.onizleme_kaynak is None:
             return
-        gecici = self.filtreleri_uygula(self.onizleme_kaynak.copy())
+        gecici = self.renk_ve_gurultu(self.onizleme_kaynak.copy())
         gecici.thumbnail(ONIZLEME_GOSTERIM_BOYUTU, Image.Resampling.LANCZOS)
+        # Önizleme küçültülmüş olduğu için aynı yarıçap orantılı küçültülür; yoksa
+        # ekranda gerçekte olduğundan çok daha keskin görünür ve yanıltır.
+        if self.orijinal_img is not None and self.orijinal_img.width:
+            olcek = max(0.15, gecici.width / self.orijinal_img.width)
+        else:
+            olcek = 1.0
+        gecici = self.keskinlestirmeyi_uygula(gecici, olcek)
         self.tk_img = ImageTk.PhotoImage(gecici)  # referans tutulmazsa görüntü kaybolur
         self.onizleme_label.config(image=self.tk_img, text="")
 
@@ -1558,7 +1788,21 @@ class SunmesizBaskiApp:
         self.durum_lbl.config(text="Tam çözünürlükte iyileştirme uygulanıyor...")
         self.root.update_idletasks()
 
-        islenen = jpeg_uyumlu(self.filtreleri_uygula(self.orijinal_img.copy()))
+        # Sıra önemlidir: renk/gürültü düzeltmesi -> (gerekiyorsa) büyütme -> keskinleştirme.
+        # Keskinleştirme en sona bırakılmazsa büyütme onu yumuşatır ve etkisi kaybolur.
+        islenen = jpeg_uyumlu(self.renk_ve_gurultu(self.orijinal_img.copy()))
+
+        dikey = "Dikey" in self.yon_combo.get()
+        if self.buyut_var.get():
+            onceki_dpi = baski_cozunurlugu(islenen, sutun_sayisi, satir_sayisi, dikey)
+            if onceki_dpi < KABUL_DPI:
+                self.durum_lbl.config(text="Düşük çözünürlük: akıllı büyütme uygulanıyor...")
+                self.root.update_idletasks()
+                islenen, kat = akilli_buyut(islenen, IYI_DPI, sutun_sayisi, satir_sayisi, dikey)
+                if kat > 1.0:
+                    print(f"[büyütme] {kat:.2f} kat -> {islenen.width}x{islenen.height}", flush=True)
+
+        islenen = self.keskinlestirmeyi_uygula(islenen)
 
         zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
         klasor_adi = f"Poster_OranKorumali_{zaman_damgasi}"

@@ -30,8 +30,14 @@ yazmaz.
   tamamlanır, böylece bütün sayfalar birebir aynı ölçekle basılır ve parçalar tutar.
 - **Çakışma payı (bindirme)** — komşu sayfalarda tekrar basılan şerit sayesinde kesip
   yapıştırırken tolerans kalır.
-- **Görüntü iyileştirme** — keskinlik, kontrast, renk canlılığı ve parlaklık sürgüleri;
-  önizleme anında güncellenir, PDF her zaman tam çözünürlükten üretilir.
+- **Baskı iyileştirme** — profesyonel araçlar: **unsharp mask** (yarıçap / miktar / eşik),
+  **otomatik seviye + beyaz dengesi**, **gürültü azaltma**, kontrast/renk/parlaklık.
+  Görsel türüne göre hazır ayarlar (Fotoğraf, Grafik-Afiş, Tarama, Telefon).
+- **Çözünürlük uyarısı** — seçtiğiniz sayfa sayısında posterin gerçek ölçüsünü ve baskı
+  DPI'ını hesaplar; düşükse *baskıdan önce* uyarır. İsteğe bağlı **akıllı büyütme**
+  (Lanczos + keskinleştirme) devreye girer.
+- **Dürüst önizleme** — keskinleştirme yarıçapı önizleme küçültmesine göre ölçeklenir;
+  ekranda gördüğünüz keskinlik kâğıttakiyle aynıdır.
 - **Baskı kalitesi** — parçalar JPEG kalite 95, renk alt örneklemesi kapalı (4:4:4),
   300 DPI etiketiyle kaydedilir.
 

@@ -312,20 +312,92 @@ sayfa olduğu sorulur.</p>
   oranına yaklaştırın (örneğin 2:1 bir görsel için 4×2 yatay).
 </div>
 
-<h2 id="iyilestirme">6. Adım 4 — Görüntü iyileştirme</h2>
-<p>Dört sürgü doğrudan önizlemeye yansır; değişiklik anında görünür. Baskı, ekrandan daha
-mat çıktığı için hafif kontrast ve canlılık artışı genellikle işe yarar.</p>
-{sekil("05b_surgu_paneli.png", "İyileştirme sürgüleri", "", 620)}
+<h2 id="iyilestirme">6. Adım 4 — Baskı iyileştirme</h2>
+<p>Bu bölüm, görseli <b>baskıya</b> hazırlar. Ekranda güzel duran bir görsel, kâğıtta
+genellikle daha mat ve daha yumuşak çıkar; buradaki ayarlar bu farkı kapatır. Yaptığınız
+her değişiklik sağdaki önizlemeye anında yansır.</p>
+
+<h3>Önce: çözünürlük uyarısı</h3>
+<p>Bölümün en üstünde, seçtiğiniz sayfa sayısına göre posterin <b>gerçek ölçüsü</b> ve
+<b>baskı çözünürlüğü</b> yazar. Rengi size ne yapmanız gerektiğini söyler:</p>
 <table>
-  <tr><th>Sürgü</th><th>Aralık</th><th>Ne yapar</th><th>Baskı için öneri</th></tr>
-  <tr><td>Detay Netliği</td><td>1.0 – 4.0</td><td>Kenar keskinliği + detay filtresi</td>
-      <td>1.5 – 2.5 (fazlası halkalanma yapar)</td></tr>
-  <tr><td>Dinamik Kontrast</td><td>0.5 – 2.5</td><td>Açık/koyu ayrımı</td><td>1.1 – 1.4</td></tr>
-  <tr><td>Renk Canlılığı</td><td>0.5 – 2.5</td><td>Renk doygunluğu</td><td>1.2 – 1.5</td></tr>
-  <tr><td>Genel Parlaklık</td><td>0.5 – 2.0</td><td>Toplam aydınlık</td><td>1.0 – 1.2</td></tr>
+  <tr><th>Renk</th><th>Anlamı</th><th>Ne yapmalı</th></tr>
+  <tr><td><b>Yeşil</b> (200 DPI üstü)</td><td>Çözünürlük yeterli</td>
+      <td>Devam edin</td></tr>
+  <tr><td><b>Turuncu</b> (120–200 DPI)</td><td>Kabul edilebilir</td>
+      <td>Birkaç adım uzaktan bakılan posterlerde sorun olmaz</td></tr>
+  <tr><td><b>Kırmızı</b> (120 DPI altı)</td><td>Düşük — yakından pikselli görünür</td>
+      <td>Sayfa sayısını azaltın ya da daha büyük bir görsel bulun</td></tr>
 </table>
-<p><code>Ayarları Sıfırla</code> dört sürgüyü de 1.0'a döndürür.</p>
-{sekil("05_iyilestirme.png", "İyileştirme uygulanmış hali", "sürgüler sağa alındığında önizleme anında güncellenir")}
+<div class="kutu kutu-uyari">
+  <b>Bu uyarı kâğıt israfını önler.</b> 1920 × 1080 bir görseli 4 × 2 (yaklaşık 119 × 42 cm)
+  bastırmak isterseniz baskı ~40 DPI olur; 8 sayfa kâğıt harcadıktan sonra sonucu
+  beğenmezsiniz. Uyarı bunu <u>baskıdan önce</u> söyler.
+</div>
+
+<h3>Hazır ayarlar</h3>
+<p>Tek tek ayar yapmak istemiyorsanız <b>Hazır Ayar</b> listesinden görselinize uyanı
+seçin; program bütün değerleri sizin için doldurur.</p>
+<table>
+  <tr><th>Hazır ayar</th><th>Ne zaman</th></tr>
+  <tr><td><b>Fotoğraf</b></td><td>Makine ya da telefonla çekilmiş normal fotoğraflar
+      (varsayılan)</td></tr>
+  <tr><td><b>Grafik / Afiş</b></td><td>Tasarlanmış afiş, logo, düz renkli grafik —
+      renklere dokunulmaz, sadece kenarlar keskinleştirilir</td></tr>
+  <tr><td><b>Tarama / Eski baskı</b></td><td>Taranmış belge ya da eski fotoğraf; gürültü
+      azaltma devrede</td></tr>
+  <tr><td><b>Telefon fotoğrafı</b></td><td>Loş ışıkta çekilmiş, hafif gürültülü kareler</td></tr>
+  <tr><td><b>Dokunma (ham)</b></td><td>Hiçbir işlem yapılmasın; görsel olduğu gibi kalsın</td></tr>
+</table>
+
+<h3>Ayarlar tek tek</h3>
+<table>
+  <tr><th>Ayar</th><th>Ne yapar</th><th>Öneri</th></tr>
+  <tr><td><b>Otomatik düzelt</b></td>
+      <td>Soluk görüntünün kontrastını açar ve renk sapmasını (sarılık/mavilik) giderir.
+          İki işi tek kutucukla yapar.</td>
+      <td>Fotoğraflarda <b>açık</b>; tasarlanmış afişlerde <b>kapalı</b> (tasarımcının
+          renklerini değiştirmesin)</td></tr>
+  <tr><td><b>Düşük çözünürlükte akıllı büyüt</b></td>
+      <td>Görsel seçtiğiniz boy için küçükse, baskı öncesi yumuşak geçişli büyütür ve
+          ardından hafifçe keskinleştirir.</td>
+      <td><b>Açık</b> bırakın</td></tr>
+  <tr><td><b>Gürültü azaltma</b></td>
+      <td>Loş ışıkta çekilmiş fotoğraflardaki benek benek görüntüyü temizler.</td>
+      <td>Temiz fotoğraflarda <b>Kapalı</b>; benekliyse <b>Hafif</b> ya da <b>Orta</b></td></tr>
+</table>
+
+<h4>Keskinleştirme (unsharp mask)</h4>
+<p>Baskıda kullanılan gerçek keskinleştirme yöntemidir; üç ayarı vardır:</p>
+<table>
+  <tr><th>Sürgü</th><th>Ne yapar</th><th>Öneri</th></tr>
+  <tr><td><b>Yarıçap</b></td><td>Kenarların ne kadar kalın bir bant boyunca
+      belirginleşeceği</td><td>1.0 – 1.5 (büyük posterlerde 2'ye kadar)</td></tr>
+  <tr><td><b>Miktar</b></td><td>Etkinin gücü</td><td>%80 – %150</td></tr>
+  <tr><td><b>Eşik</b></td><td>Bu değerin altındaki küçük farklara dokunulmaz; düz
+      alanlardaki gürültünün keskinleşmesini önler</td><td>2 – 5 (fotoğraf), 0 (grafik)</td></tr>
+</table>
+<div class="kutu kutu-bilgi">
+  <b>Fazla keskinleştirmeyin.</b> Miktarı %200'ün üstüne çıkarırsanız kenarlarda beyaz
+  hâleler (halkalanma) belirir ve baskıda çirkin durur. Önizlemede kenarlara yakından bakın.
+</div>
+
+<h4>Renk ve ton</h4>
+<table>
+  <tr><th>Sürgü</th><th>Aralık</th><th>Baskı için öneri</th></tr>
+  <tr><td>Kontrast</td><td>0.5 – 2.5</td><td>1.1 – 1.3</td></tr>
+  <tr><td>Renk Canlılığı</td><td>0.5 – 2.5</td><td>1.2 – 1.4 (mat kâğıt söndürür)</td></tr>
+  <tr><td>Parlaklık</td><td>0.5 – 2.0</td><td>1.0 – 1.15</td></tr>
+</table>
+<p><code>Ayarları Sıfırla</code> her şeyi “Fotoğraf” hazır ayarına döndürür.</p>
+{sekil("05_iyilestirme.png", "İyileştirme uygulanmış hali", "değişiklikler önizlemeye anında yansır")}
+
+<div class="kutu kutu-bilgi">
+  <b>Önizleme dürüsttür.</b> Önizleme küçültülmüş bir kopya üzerinde çalışır; program
+  keskinleştirme yarıçapını bu küçültme oranına göre ayarlar. Böylece ekranda gördüğünüz
+  keskinlik, kâğıtta göreceğinizle aynı olur — birçok programda bu yapılmadığı için
+  önizleme olduğundan keskin görünür.
+</div>
 
 <h2 id="uretim">7. Adım 5 — PDF üretme</h2>
 <p><code>Oranı Koru ve Hazır PDF Üret</code> düğmesine basın. Alt satırda
