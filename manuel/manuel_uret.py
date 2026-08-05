@@ -128,8 +128,9 @@ https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip</a></p>
 
 <div class="kutu kutu-bilgi">
   <b>İlk açılış yaklaşık yarım dakika sürer ve internet gerektirir.</b> Program bu sırada
-  ihtiyacı olan iki parçayı kendi klasörüne indirir; küçük bir pencerede
-  “gerekli bileşenler kuruluyor” yazar. Bu bir kez olur, sonraki açılışlar anındadır.
+  ihtiyacı olan bileşenleri (görüntü işleme, PDF okuma-yazma, iPhone ve ham fotoğraf
+  desteği) kendi klasörüne indirir; küçük bir pencerede “gerekli bileşenler kuruluyor”
+  yazar. Bu yalnızca bir kez olur, sonraki açılışlar anında gerçekleşir.
 </div>
 
 <h3>1.5. Masaüstüne kısayol koyun (tavsiye edilir)</h3>
@@ -260,11 +261,13 @@ sayfa olduğu sorulur.</p>
 <b>“Resim adresini kopyala”</b>. Panonuzda bir adres varsa kutuya zaten hazır gelir.</p>
 {sekil("02b_link_penceresi.png", "Link ile alma penceresi", "adres yapıştırılıp Resmi Al denir", 760)}
 <div class="kutu kutu-bilgi">
-  <b>Dikkat edilecekler:</b> Adres <u>görselin kendisine</u> ait olmalı (sonu genelde
-  <code>.jpg</code> / <code>.png</code> / <code>.pdf</code> ile biter); sayfanın adresi işe yaramaz, program uyarı verir. En fazla 60 MB indirilir. Şifre isteyen ya da
-  yalnızca üyelere açık sayfalardaki resimler indirilemez — o durumda resmi tarayıcıdan
-  <b>sağ tık → Resmi farklı kaydet</b> ile bilgisayarınıza kaydedip
-  <code>Bilgisayardan Resim Seç</code> ile açın.
+  <b>Dikkat edilecekler:</b> Adres <u>görselin kendisine</u> ait olmalı; sonu genelde
+  <code>.jpg</code>, <code>.png</code> ya da <code>.pdf</code> ile biter. Sayfanın adresini
+  yapıştırırsanız program “bu adres bir resim ya da PDF değil, web sayfası döndürüyor”
+  uyarısını verir ve indirmez. En fazla 60 MB indirilebilir. Şifre isteyen ya da yalnızca
+  üyelere açık sayfalardaki görseller indirilemez; o durumda görseli tarayıcıdan
+  <b>sağ tık → Resmi farklı kaydet</b> ile bilgisayarınıza kaydedin ve
+  <code>Bilgisayardan Dosya Seç</code> ile açın.
 </div>
 {sekil("02_dosya_secme.png", "Dosya seçme penceresi", "Klasör · Dosya adı · Aç · İptal")}
 
@@ -376,7 +379,44 @@ sayesinde parçalar üst üste bindirilerek hizalanır.</p>
 yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
 {sekil("08_montaj_dogrulama.png", "6 parçanın birleştirilmiş hali", "ek yerlerinde kayma veya sünme yok")}
 
-<h2 id="sorun">11. Sık karşılaşılan durumlar</h2>
+<h2 id="dizme">11. Çok resmi tek A4'e dizme</h2>
+<p>Programın ikinci modu, poster bölmenin tam tersini yapar: <b>birçok resmi tek A4
+sayfaya ızgara halinde dizer</b>. Ürün fotoğrafları, katalog sayfası, öğrenci çalışmaları
+ya da vesikalık baskısı gibi işlerde kâğıt israfını önler.</p>
+<p>Sol panelin en üstündeki <b>“Çok resmi tek A4'e diz”</b> seçeneğini işaretleyin; panel
+bu moda göre değişir.</p>
+{sekil("10_dizme_modu.png", "Dizme modu", "sağda ilk sayfanın önizlemesi anında görünür")}
+
+<h3>Adım adım</h3>
+<ol>
+  <li><b>Resimleri Seç (çoklu)</b> ile dosyaları seçin — pencerede Ctrl (macOS'ta Cmd)
+      tuşuna basılı tutarak birden çok dosya işaretleyebilirsiniz. Bütün bir klasörü
+      almak isterseniz <b>Klasördeki Tüm Resimler</b> düğmesini kullanın.</li>
+  <li><b>Sütun</b> ve <b>satır</b> sayısını girin. Sayfa başına kaç resim düşeceğini ve
+      toplam kaç sayfa çıkacağını program alt satırda kendisi yazar.</li>
+  <li>Gerekirse <b>sayfa yönünü</b>, <b>kenar boşluğunu</b> ve <b>resimler arası
+      boşluğu</b> ayarlayın (milimetre cinsinden). Önizleme her değişiklikte yenilenir.</li>
+  <li><b>Resimleri A4 Sayfalara Diz</b> düğmesine basın.</li>
+</ol>
+
+<div class="kutu kutu-bilgi">
+  <b>Resimler kırpılmaz ve gerilmez.</b> Her resim, kendi oranı korunarak hücresine
+  sığdırılır ve hücrede ortalanır. Bu yüzden dikey ve yatay resimler bir arada olduğunda
+  aralarda beyaz boşluk kalması normaldir — alternatifi, resmin kenarlarından kesmek
+  olurdu.
+</div>
+
+<div class="kutu kutu-bilgi">
+  <b>Sıralama:</b> Dosyalar adlarına göre, sayılar sayısal olarak sıralanır; yani
+  <code>resim2</code> her zaman <code>resim10</code>'dan önce gelir. İstediğiniz sırayı
+  elde etmek için dosyaları <code>01, 02, 03…</code> gibi adlandırmanız yeterlidir.
+</div>
+
+<p>Çıktı, poster modundaki gibi masaüstündeki <code>Poster_Parcalari</code> klasörüne
+düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DPI, gerçek A4
+ölçüsündedir (2480 × 3508 piksel); yazdırırken yine <b>%100 / Gerçek Boyut</b> seçin.</p>
+
+<h2 id="sorun">12. Sık karşılaşılan durumlar</h2>
 <table>
   <tr><th>Durum</th><th>Sebep / Çözüm</th></tr>
   <tr><td>Parçalar birleşmiyor, kayıyor</td>
@@ -415,7 +455,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
       <td>Yalnızca ilk seferde bileşenler indirilir (~30 sn). Sonraki açılışlar anındadır.</td></tr>
 </table>
 
-<h2 id="teknik">12. Teknik notlar</h2>
+<h2 id="teknik">13. Teknik notlar</h2>
 <ul>
   <li><b>Sünme yok:</b> Görsel, sayfa matrisinin oranına <i>doldurularak değil</i>, oranı
       korunarak yerleştirilir; artan alan beyaz bırakılır.</li>
@@ -437,7 +477,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
   <li><b>Kaynak kodu:</b> <code>github.com/mustafasneu/poster-basim</code></li>
 </ul>
 
-<h2 id="baglantilar">13. Bağlantılar</h2>
+<h2 id="baglantilar">14. Bağlantılar</h2>
 <p>İhtiyaç duyabileceğiniz bütün adresler:</p>
 <table>
   <tr><th>Ne için</th><th>Adres</th></tr>
@@ -455,7 +495,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
       <td><a href="{DEPO}/issues">{DEPO}/issues</a></td></tr>
 </table>
 
-<h2 id="kurulum">14. Kaldırma, taşıma ve internetsiz kurulum</h2>
+<h2 id="kurulum">15. Kaldırma, taşıma ve internetsiz kurulum</h2>
 <div class="kutu kutu-ok">
   <strong>Programı kaldırmak:</strong> <code>poster-basim-main</code> klasörünü ve
   masaüstündeki “Poster Basım” simgesini silin. Bu kadar — program bilgisayarınızın
@@ -474,11 +514,13 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
   bilgisayara aktarın (kablo, e-posta ya da bulut ile).
 </div>
 <div class="kutu kutu-bilgi">
-  <b>İnternetsiz bilgisayarda kurulum:</b> İlk açılışta iki bileşenin inmesi için internet
-  gerekir. Hiç internet olmayacaksa, internetli bir bilgisayarda
-  <code>pip download pillow reportlab -d paketler</code> komutuyla hazırlanan
-  <code>paketler</code> klasörünü de taşıyın ve hedef makinede
-  <code>pip install --no-index --find-links paketler pillow reportlab</code> çalıştırın.
+  <b>İnternetsiz bilgisayarda kurulum:</b> Bileşenlerin inebilmesi için ilk açılışta
+  internet gerekir. Hedef bilgisayarda hiç internet olmayacaksa, internetli bir
+  bilgisayarda şu komutla paketleri indirin:
+  <code>pip download pillow reportlab pypdfium2 pillow-heif rawpy -d paketler</code>.
+  Oluşan <code>paketler</code> klasörünü program klasörüyle birlikte taşıyın ve hedef
+  makinede <code>pip install --no-index --find-links paketler pillow reportlab pypdfium2
+  pillow-heif rawpy</code> komutunu bir kez çalıştırın.
 </div>
 
 <footer>

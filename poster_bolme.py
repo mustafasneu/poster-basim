@@ -721,6 +721,61 @@ def masaustu_yolu() -> str:
     return ev
 
 
+def dogal_anahtar(metin: str):
+    """'resim2' < 'resim10' olacak şekilde sıralama anahtarı (sözlük sırası yanıltır)."""
+    import re
+
+    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", metin)]
+
+
+def a4_piksel(dikey: bool, dpi: int = PDF_DPI) -> tuple[int, int]:
+    """A4 sayfanın verilen çözünürlükteki piksel ölçüsü (210 x 297 mm)."""
+    kisa, uzun = round(210 / 25.4 * dpi), round(297 / 25.4 * dpi)
+    return (kisa, uzun) if dikey else (uzun, kisa)
+
+
+def resimleri_sayfaya_diz(
+    goruntuler: list[Image.Image],
+    sutun: int,
+    satir: int,
+    dikey: bool,
+    kenar_mm: float = 10,
+    aralik_mm: float = 4,
+    dpi: int = PDF_DPI,
+) -> Image.Image:
+    """Verilen görüntüleri tek bir A4 sayfaya ızgara halinde yerleştirir.
+
+    Her görüntü hücresine oranı korunarak sığdırılır ve hücrede ortalanır; hiçbir
+    görüntü kırpılmaz ya da gerilmez.
+    """
+    sayfa_w, sayfa_h = a4_piksel(dikey, dpi)
+    kenar = round(kenar_mm / 25.4 * dpi)
+    aralik = round(aralik_mm / 25.4 * dpi)
+
+    kullanilabilir_w = sayfa_w - 2 * kenar - aralik * (sutun - 1)
+    kullanilabilir_h = sayfa_h - 2 * kenar - aralik * (satir - 1)
+    if kullanilabilir_w <= 0 or kullanilabilir_h <= 0:
+        raise ValueError(
+            "Kenar boşluğu ve aralık, sayfaya sığmayacak kadar büyük.\n"
+            "Değerleri küçültün ya da satır/sütun sayısını azaltın."
+        )
+    hucre_w = kullanilabilir_w // sutun
+    hucre_h = kullanilabilir_h // satir
+
+    sayfa = Image.new("RGB", (sayfa_w, sayfa_h), (255, 255, 255))
+    for sira, goruntu in enumerate(goruntuler[: sutun * satir]):
+        parca = rgb_yap(goruntu).copy()
+        parca.thumbnail((hucre_w, hucre_h), Image.Resampling.LANCZOS)  # oranı korur
+        s, u = sira % sutun, sira // sutun
+        hucre_x = kenar + s * (hucre_w + aralik)
+        hucre_y = kenar + u * (hucre_h + aralik)
+        sayfa.paste(  # hücre içinde ortala
+            parca,
+            (hucre_x + (hucre_w - parca.width) // 2, hucre_y + (hucre_h - parca.height) // 2),
+        )
+    return sayfa
+
+
 def jpeg_uyumlu(img: Image.Image) -> Image.Image:
     """Alfa kanallı / paletli / CMYK resimleri beyaz zemine düzleştirip RGB'ye çevirir."""
     return rgb_yap(img)
@@ -743,6 +798,8 @@ class SunmesizBaskiApp:
         self.son_cikis_klasoru: str | None = None
         self._filtre_isi: str | None = None
         self._indirme_dizini: str | None = None  # linkten inen resimler için geçici klasör
+        self.mod = tk.StringVar(value="poster")
+        self.dizme_dosyalari: list[str] = []
 
         self.arayuz_tasarla()
 
@@ -773,6 +830,29 @@ class SunmesizBaskiApp:
         # Ayarlar kaydırılabilir bir alanda durur; yazı tipi büyük ya da ekran kısa olsa
         # bile hiçbir ayar erişilemez hale gelmez.
         ayarlar = self._kaydirilabilir_alan(sol_panel)
+
+        ttk.Label(
+            ayarlar, text="--- NE YAPMAK İSTİYORSUNUZ? ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=(5, 6), anchor=tk.W)
+        for deger, metin in (
+            ("poster", "Tek görseli A4'lere böl (poster)"),
+            ("dizme", "Çok resmi tek A4'e diz"),
+        ):
+            ttk.Radiobutton(
+                ayarlar,
+                text=metin,
+                value=deger,
+                variable=self.mod,
+                command=self.modu_uygula,
+            ).pack(anchor=tk.W)
+
+        # Dizme moduna ait ayarlar; mod değişince gösterilip gizlenir.
+        self.dizme_cercevesi = ttk.Frame(ayarlar)
+        self._dizme_arayuzu(self.dizme_cercevesi)
+
+        self.poster_cercevesi = ttk.Frame(ayarlar)
+        ayarlar = self.poster_cercevesi  # aşağıdaki poster ayarları bu çerçeveye girer
+        self.poster_cercevesi.pack(fill=tk.X)
 
         ttk.Label(ayarlar, text="--- 1. DOSYA SEÇİMİ ---", font=(self.font_ailesi, 11, "bold")).pack(
             pady=5, anchor=tk.W
@@ -897,6 +977,86 @@ class SunmesizBaskiApp:
 
         return icerik
 
+    def _dizme_arayuzu(self, ust: ttk.Frame):
+        """'Çok resmi tek A4'e diz' modunun ayarları."""
+        ttk.Label(
+            ust, text="--- 1. RESİMLERİ SEÇİN ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=5, anchor=tk.W)
+        ttk.Button(ust, text="Resimleri Seç (çoklu)", command=self.dizme_resimleri_sec).pack(
+            fill=tk.X, pady=(5, 3)
+        )
+        ttk.Button(ust, text="Klasördeki Tüm Resimler", command=self.dizme_klasor_sec).pack(
+            fill=tk.X, pady=(0, 3)
+        )
+        ttk.Button(ust, text="Listeyi Temizle", command=self.dizme_temizle).pack(
+            fill=tk.X, pady=(0, 5)
+        )
+        self.dizme_lbl = ttk.Label(
+            ust, text="Henüz resim seçilmedi...", wraplength=220, foreground="gray"
+        )
+        self.dizme_lbl.pack(anchor=tk.W, pady=2)
+
+        ttk.Label(
+            ust, text="--- 2. SAYFA DÜZENİ ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=15, anchor=tk.W)
+
+        ttk.Label(ust, text="Sütun Sayısı (yan yana):").pack(anchor=tk.W)
+        self.dizme_sutun = ttk.Spinbox(ust, from_=1, to=10, width=10, command=self.dizme_onizle)
+        self.dizme_sutun.set(3)
+        self.dizme_sutun.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(ust, text="Satır Sayısı (alt alta):").pack(anchor=tk.W)
+        self.dizme_satir = ttk.Spinbox(ust, from_=1, to=10, width=10, command=self.dizme_onizle)
+        self.dizme_satir.set(4)
+        self.dizme_satir.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(ust, text="Sayfa Yönü:").pack(anchor=tk.W)
+        self.dizme_yon = ttk.Combobox(
+            ust, values=["Dikey (Portrait)", "Yatay (Landscape)"], state="readonly"
+        )
+        self.dizme_yon.set("Dikey (Portrait)")
+        self.dizme_yon.pack(fill=tk.X, pady=5)
+        self.dizme_yon.bind("<<ComboboxSelected>>", lambda _o: self.dizme_onizle())
+
+        ttk.Label(ust, text="Kenar Boşluğu (mm):").pack(anchor=tk.W)
+        self.dizme_kenar = ttk.Spinbox(ust, from_=0, to=40, width=10, command=self.dizme_onizle)
+        self.dizme_kenar.set(10)
+        self.dizme_kenar.pack(pady=5, anchor=tk.W)
+
+        ttk.Label(ust, text="Resimler Arası Boşluk (mm):").pack(anchor=tk.W)
+        self.dizme_aralik = ttk.Spinbox(ust, from_=0, to=30, width=10, command=self.dizme_onizle)
+        self.dizme_aralik.set(4)
+        self.dizme_aralik.pack(pady=5, anchor=tk.W)
+
+        self.dizme_bilgi = ttk.Label(ust, text="", wraplength=220, foreground="gray")
+        self.dizme_bilgi.pack(anchor=tk.W, pady=(10, 4))
+
+    def modu_uygula(self):
+        """Seçilen moda göre ayar panelini ve üretim düğmesini değiştirir."""
+        dizme = self.mod.get() == "dizme"
+        if dizme:
+            self.poster_cercevesi.pack_forget()
+            self.dizme_cercevesi.pack(fill=tk.X)
+            self.kaydet_btn.config(text="Resimleri A4 Sayfalara Diz")
+            self.kaydet_btn.config(state=tk.NORMAL if self.dizme_dosyalari else tk.DISABLED)
+            self.onizleme_label.config(
+                text="Resimleri seçin; ilk sayfanın önizlemesi burada görünecek..."
+                if not self.dizme_dosyalari
+                else ""
+            )
+            self.dizme_onizle()
+        else:
+            self.dizme_cercevesi.pack_forget()
+            self.poster_cercevesi.pack(fill=tk.X)
+            self.kaydet_btn.config(text="Oranı Koru ve Hazır PDF Üret")
+            self.kaydet_btn.config(state=tk.NORMAL if self.orijinal_img else tk.DISABLED)
+            if self.orijinal_img is None:
+                self.onizleme_label.config(
+                    image="", text="Lütfen başlamak için bir resim ya da PDF seçin..."
+                )
+            else:
+                self.onizlemeyi_guncelle()
+
     def _surgu_ekle(self, ust: ttk.Frame, etiket: str, alt_sinir: float, ust_sinir: float):
         ttk.Label(ust, text=etiket).pack(anchor=tk.W)
         surgu = ttk.Scale(
@@ -971,6 +1131,141 @@ class SunmesizBaskiApp:
 
         threading.Thread(target=indir, daemon=True).start()
         self.root.after(120, yokla)
+
+    # -------------------------------------------------------- çok resmi tek sayfaya dizme
+    def dizme_resimleri_sec(self):
+        yollar = filedialog.askopenfilenames(
+            title="Dizilecek Resimleri Seçin (birden çok seçebilirsiniz)",
+            filetypes=[
+                ("Resim dosyaları", " ".join(f"*{u}" for u in PILLOW_UZANTILARI + HEIC_UZANTILARI)),
+                ("Tüm Dosyalar", "*.*"),
+            ],
+        )
+        if yollar:
+            self._dizme_dosyalari_ekle(list(yollar))
+
+    def dizme_klasor_sec(self):
+        klasor = filedialog.askdirectory(title="Resimlerin Bulunduğu Klasörü Seçin")
+        if not klasor:
+            return
+        kabul = PILLOW_UZANTILARI + HEIC_UZANTILARI + RAW_UZANTILARI
+        bulunan = [
+            os.path.join(klasor, ad)
+            for ad in os.listdir(klasor)
+            if os.path.splitext(ad)[1].lower() in kabul
+        ]
+        if not bulunan:
+            messagebox.showinfo("Klasör", "Bu klasörde desteklenen resim bulunamadı.")
+            return
+        self._dizme_dosyalari_ekle(bulunan)
+
+    def _dizme_dosyalari_ekle(self, yollar: list[str]):
+        # Dosya adındaki sayılar sayısal karşılaştırılır: resim2, resim10'dan önce gelir.
+        self.dizme_dosyalari = sorted(set(yollar), key=lambda y: dogal_anahtar(os.path.basename(y)))
+        self.dizme_lbl.config(
+            text=f"{len(self.dizme_dosyalari)} resim seçildi "
+            f"({os.path.basename(self.dizme_dosyalari[0])} ...)",
+            foreground="black",
+        )
+        self.kaydet_btn.config(state=tk.NORMAL)
+        self.dizme_onizle()
+
+    def dizme_temizle(self):
+        self.dizme_dosyalari = []
+        self.dizme_lbl.config(text="Henüz resim seçilmedi...", foreground="gray")
+        self.dizme_bilgi.config(text="")
+        self.kaydet_btn.config(state=tk.DISABLED)
+        self.onizleme_label.config(
+            image="", text="Resimleri seçin; ilk sayfanın önizlemesi burada görünecek..."
+        )
+
+    def _dizme_ayarlari(self) -> tuple[int, int, bool, float, float]:
+        sutun = max(1, min(int(self.dizme_sutun.get() or 1), 10))
+        satir = max(1, min(int(self.dizme_satir.get() or 1), 10))
+        dikey = "Dikey" in self.dizme_yon.get()
+        kenar = max(0.0, min(float(self.dizme_kenar.get() or 0), 40))
+        aralik = max(0.0, min(float(self.dizme_aralik.get() or 0), 30))
+        return sutun, satir, dikey, kenar, aralik
+
+    def dizme_onizle(self, *_):
+        """İlk sayfanın nasıl görüneceğini düşük çözünürlükte gösterir."""
+        if self.mod.get() != "dizme" or not self.dizme_dosyalari:
+            return
+        try:
+            sutun, satir, dikey, kenar, aralik = self._dizme_ayarlari()
+        except ValueError:
+            return
+
+        sayfa_basina = sutun * satir
+        toplam_sayfa = (len(self.dizme_dosyalari) + sayfa_basina - 1) // sayfa_basina
+        self.dizme_bilgi.config(
+            text=f"Sayfa başına {sayfa_basina} resim → toplam {toplam_sayfa} A4 sayfa "
+            f"({len(self.dizme_dosyalari)} resim)"
+        )
+
+        try:  # önizleme düşük çözünürlükte üretilir, hızlı olsun
+            goruntuler = [
+                kaynak_goruntusu_ac(y) for y in self.dizme_dosyalari[:sayfa_basina]
+            ]
+            sayfa = resimleri_sayfaya_diz(goruntuler, sutun, satir, dikey, kenar, aralik, dpi=72)
+        except (ValueError, MemoryError, OSError) as hata:
+            self.onizleme_label.config(image="", text=f"Önizleme alınamadı:\n{hata}")
+            return
+        sayfa.thumbnail(ONIZLEME_GOSTERIM_BOYUTU, Image.Resampling.LANCZOS)
+        self.tk_img = ImageTk.PhotoImage(sayfa)
+        self.onizleme_label.config(image=self.tk_img, text="")
+
+    def dizme_uret(self):
+        """Seçilen resimleri A4 sayfalara dizip PDF ve JPEG olarak kaydeder."""
+        try:
+            sutun, satir, dikey, kenar, aralik = self._dizme_ayarlari()
+        except ValueError:
+            messagebox.showerror("Hata", "Sayfa düzeni değerleri sayı olmalı.")
+            return
+
+        sayfa_basina = sutun * satir
+        toplam_sayfa = (len(self.dizme_dosyalari) + sayfa_basina - 1) // sayfa_basina
+        zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
+        cikis_klasoru = cikis_klasoru_hazirla(f"Dizilmis_Sayfalar_{zaman_damgasi}")
+        pdf_yolu = os.path.join(cikis_klasoru, f"Dizilmis_Sayfalar_{zaman_damgasi}.pdf")
+
+        sayfa_boyutu = A4 if dikey else landscape(A4)
+        pdf_canvas = canvas.Canvas(pdf_yolu, pagesize=sayfa_boyutu)
+        sayfa_w, sayfa_h = sayfa_boyutu
+
+        for sayfa_no in range(toplam_sayfa):
+            self.durum_lbl.config(text=f"Sayfa hazırlanıyor: {sayfa_no + 1} / {toplam_sayfa}")
+            self.root.update_idletasks()
+
+            dilim = self.dizme_dosyalari[sayfa_no * sayfa_basina : (sayfa_no + 1) * sayfa_basina]
+            goruntuler = []
+            for yol in dilim:
+                try:
+                    goruntuler.append(kaynak_goruntusu_ac(yol))
+                except (ValueError, MemoryError) as hata:  # tek bozuk dosya işi durdurmasın
+                    print(f"[atlandı] {os.path.basename(yol)}: {hata}", flush=True)
+            if not goruntuler:
+                continue
+
+            sayfa = resimleri_sayfaya_diz(goruntuler, sutun, satir, dikey, kenar, aralik)
+            jpeg_yolu = os.path.join(cikis_klasoru, f"sayfa_{sayfa_no + 1:02d}.jpg")
+            sayfa.save(jpeg_yolu, "JPEG", quality=95, subsampling=0, dpi=(PDF_DPI, PDF_DPI))
+            pdf_canvas.drawImage(jpeg_yolu, 0, 0, width=sayfa_w, height=sayfa_h)
+            pdf_canvas.showPage()
+
+        pdf_canvas.save()
+        self.son_cikis_klasoru = cikis_klasoru
+        self.klasor_btn.config(state=tk.NORMAL)
+        nerede = os.path.basename(os.path.dirname(os.path.dirname(cikis_klasoru)))
+        self.durum_lbl.config(
+            text=f"Tamamlandı: {toplam_sayfa} sayfa → {os.path.basename(pdf_yolu)} ({nerede})"
+        )
+        messagebox.showinfo(
+            "Hazır",
+            f"{len(self.dizme_dosyalari)} resim {toplam_sayfa} A4 sayfaya dizildi.\n\n"
+            f"Klasör:\n{cikis_klasoru}\n\n"
+            "Yazdırırken ölçeklendirmeyi '%100 / Gerçek Boyut' seçin.",
+        )
 
     def _pdf_yukle(self, yol: str) -> Image.Image | None:
         """PDF'i (gerekirse sayfa sordurarak) baskı çözünürlüğünde görüntüye çevirir."""
@@ -1220,6 +1515,19 @@ class SunmesizBaskiApp:
 
     # ------------------------------------------------------------------ üretim
     def parcala_ve_pdf_yap(self):
+        if self.mod.get() == "dizme":
+            if not self.dizme_dosyalari:
+                return
+            self.kaydet_btn.config(state=tk.DISABLED)
+            try:
+                self.dizme_uret()
+            except (OSError, ValueError, MemoryError) as hata:
+                messagebox.showerror("Hata", f"Sayfalar üretilirken sorun çıktı:\n{hata}")
+                self.durum_lbl.config(text="İşlem başarısız.")
+            finally:
+                self.kaydet_btn.config(state=tk.NORMAL)
+            return
+
         if self.orijinal_img is None:
             return
         try:

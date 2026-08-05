@@ -111,6 +111,34 @@ def main():
         finally:
             root.after(2200, lambda: os.path.exists(ornek_pdf) and os.remove(ornek_pdf))
 
+    def dizme_ekrani():
+        """'Çok resmi tek A4'e diz' modunun ekran görüntüsü (örnek resimler üretilir)."""
+        import shutil
+        import tempfile
+
+        from PIL import Image, ImageDraw
+
+        gecici = tempfile.mkdtemp(prefix="dizme_ornek_")
+        renkler = [(198, 70, 70), (70, 155, 100), (70, 100, 190), (215, 165, 55),
+                   (140, 75, 175), (60, 160, 175)]
+        for sira in range(1, 10):
+            boy = (900, 600) if sira % 2 else (600, 900)  # farklı oranlar: sığdırma görünsün
+            ornek = Image.new("RGB", boy, renkler[sira % len(renkler)])
+            ImageDraw.Draw(ornek).text((40, 40), f"Resim {sira}", fill=(255, 255, 255))
+            ornek.save(os.path.join(gecici, f"resim{sira}.png"))
+
+        app.mod.set("dizme")
+        app.modu_uygula()
+        app._dizme_dosyalari_ekle(
+            [os.path.join(gecici, ad) for ad in os.listdir(gecici)]
+        )
+        app.dizme_sutun.set(3)
+        app.dizme_satir.set(3)
+        app.dizme_onizle()
+        root.after(700, lambda: cek(root, "10_dizme_modu"))
+        root.after(1400, lambda: (app.mod.set("poster"), app.modu_uygula(),
+                                  shutil.rmtree(gecici, ignore_errors=True)))
+
     def uret():
         from tkinter import messagebox
 
@@ -151,6 +179,8 @@ def main():
         lambda: cek(root, "05_iyilestirme"),
         uret,
         lambda: cek(root, "07_bitis_durumu"),
+        dizme_ekrani,
+        lambda: None,
     )
     root.mainloop()
 

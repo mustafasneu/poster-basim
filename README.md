@@ -1,7 +1,12 @@
 # Poster Basım
 
-Bir görseli **oranını bozmadan** A4 sayfalara böler ve baskıya hazır tek bir PDF üretir.
-Sayfaları kesip yapıştırdığınızda tek büyük poster elde edersiniz.
+İki modu var:
+
+1. **Poster** — bir görseli **oranını bozmadan** A4 sayfalara böler, baskıya hazır tek PDF
+   üretir. Sayfaları kesip yapıştırdığınızda tek büyük poster elde edersiniz.
+2. **Dizme** — tersini yapar: **çok sayıda resmi tek A4 sayfaya** ızgara halinde dizer
+   (katalog, ürün fotoğrafı, vesikalık). Resimler kırpılmaz, oranı korunarak hücreye
+   sığdırılır.
 
 **Windows, Linux ve macOS** üzerinde aynı şekilde çalışır. Kurulum gerektirmez: program
 ilk açılışta eksik bileşenleri kendi klasörüne indirir, sisteminizdeki Python'a hiçbir şey
