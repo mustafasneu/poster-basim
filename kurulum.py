@@ -20,7 +20,7 @@ PROJE_DIZINI = os.path.dirname(os.path.abspath(__file__))
 PROGRAM = os.path.join(PROJE_DIZINI, "poster_bolme.py")
 SIMGE_PNG = os.path.join(PROJE_DIZINI, "simge.png")
 SIMGE_ICO = os.path.join(PROJE_DIZINI, "simge.ico")
-AD = "Poster Bölücü"
+AD = "Poster Basım"
 ACIKLAMA = "Resmi A4 sayfalara bölüp baskıya hazır PDF üretir"
 
 WINDOWS = os.name == "nt"
@@ -127,7 +127,7 @@ def macos_olustur() -> str:
 # -------------------------------------------------------------------- Linux
 def _linux_desktop_dosyalari() -> list[str]:
     menu = os.path.join(
-        os.path.expanduser("~/.local/share/applications"), "poster-bolucu.desktop"
+        os.path.expanduser("~/.local/share/applications"), "poster-basim.desktop"
     )
     return [menu, os.path.join(masaustu_yolu(), f"{AD}.desktop")]
 
@@ -175,7 +175,7 @@ def _linux_simgeyi_kur() -> str:
     hedef_dizin = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
     try:
         os.makedirs(hedef_dizin, exist_ok=True)
-        hedef = os.path.join(hedef_dizin, "poster-bolucu.png")
+        hedef = os.path.join(hedef_dizin, "poster-basim.png")
         shutil.copyfile(SIMGE_PNG, hedef)
         return hedef
     except OSError:

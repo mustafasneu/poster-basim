@@ -1,4 +1,4 @@
-# Poster Bölücü
+# Poster Basım
 
 Bir görseli **oranını bozmadan** A4 sayfalara böler ve baskıya hazır tek bir PDF üretir.
 Sayfaları kesip yapıştırdığınızda tek büyük poster elde edersiniz.
@@ -29,27 +29,31 @@ kuruludur; Windows'ta yoksa [python.org](https://www.python.org/downloads/) üze
 kez kurulur (kurulum ekranında **“Add python.exe to PATH”** ve **“tcl/tk and IDLE”**
 işaretli kalsın).
 
+**Terminal gerekmez.** [ZIP olarak indirin](https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip),
+çıkarın, sonra kendi sisteminizin dosyasına çift tıklayın:
+
+| İşletim sistemi | Programı aç             | Masaüstü kısayolu koy (bir kez) |
+| --------------- | ----------------------- | ------------------------------- |
+| Windows 10 / 11 | `Poster Basim.bat`     | `Kisayol Olustur.bat`           |
+| macOS 11+       | `Poster Basim.command` | `Kisayol Olustur.command`       |
+| Linux           | `calistir.sh`           | `kisayol-olustur.sh`            |
+
+macOS ilk açılışta “geliştirici doğrulanamadı” derse: dosyaya **sağ tık → Aç → Aç**.
+
+Terminali tercih ederseniz:
+
 ```bash
-git clone https://github.com/mustafasneu/poster-bolucu.git
-cd poster-bolucu
-python3 kurulum.py     # masaüstüne çift tıklanabilir kısayol koyar
+git clone https://github.com/mustafasneu/poster-basim.git
+cd poster-basim
+python3 kurulum.py          # masaüstü kısayolu (--kaldir ile geri alınır)
+./calistir.sh               # programı başlat
 ```
 
-`kurulum.py` her sistemin kendi kısayolunu oluşturur: Windows'ta `.lnk`, macOS'ta
-`.command`, Linux'ta `.desktop` (uygulama menüsüne de eklenir). Kaldırmak için
-`python3 kurulum.py --kaldir`.
+Kısayol her sistemin kendi biçiminde oluşur: Windows'ta `.lnk`, macOS'ta `.command`,
+Linux'ta `.desktop` (uygulama menüsüne de eklenir).
 
-## Başlatma
-
-Kısayol kullanmadan başlatmak isterseniz:
-
-| İşletim sistemi | Çift tıklanacak dosya   | Terminalden                |
-| --------------- | ----------------------- | -------------------------- |
-| Windows 10 / 11 | `Poster Bolucu.bat`     | `py -3 poster_bolme.py`    |
-| macOS 11+       | `Poster Bolucu.command` | `./calistir.sh`            |
-| Linux           | `calistir.sh`           | `./calistir.sh`            |
-
-İlk açılış, bileşenler indirildiği için ~30 saniye sürer; sonraki açılışlar anındadır.
+İlk açılış, bileşenler indirildiği için ~30 saniye sürer ve internet gerektirir; sonraki
+açılışlar anındadır.
 
 ## Kullanım
 
@@ -80,8 +84,8 @@ orada anlatılıyor.
 | `poster_bolme.py`       | Programın kendisi (arayüz + bölme + PDF)            |
 | `kurulum.py`            | Masaüstü kısayolu oluşturucu (üç sistem)            |
 | `calistir.sh`           | Linux / macOS başlatıcısı                            |
-| `Poster Bolucu.bat`     | Windows başlatıcısı                                  |
-| `Poster Bolucu.command` | macOS başlatıcısı                                    |
+| `Poster Basim.bat`     | Windows başlatıcısı                                  |
+| `Poster Basim.command` | macOS başlatıcısı                                    |
 | `manuel/`               | Kılavuzu ve ekran görüntülerini üreten betikler      |
 
 ## Teknik

@@ -194,7 +194,7 @@ def _bildir(mesaj: str):
 
         if _pencere is None:
             _pencere = _tk.Tk()
-            _pencere.title("Poster Bölücü — ilk kurulum")
+            _pencere.title("Poster Basım — ilk kurulum")
             _pencere.geometry("460x120")
             _etiket = _tk.Label(_pencere, text=mesaj, wraplength=420, justify="left", pady=20)
             _etiket.pack(expand=True, fill="both")
@@ -331,6 +331,59 @@ def turkce_fontu_ayarla(root: tk.Misc) -> str:
     return secilen
 
 
+# Tk'nin kendi pencereleri (dosya seçme, uyarı kutuları) İngilizce gelir ve Tk
+# Türkçe çeviri paketiyle dağıtılmaz; katalogu burada kendimiz dolduruyoruz.
+# Baştaki "&" işareti klavye kısayolunu belirtir, ekranda görünmez.
+TK_TURKCE_METINLER = {
+    "&Cancel": "İ&ptal",
+    "Cancel": "İptal",
+    "&OK": "&Tamam",
+    "OK": "Tamam",
+    "&Open": "&Aç",
+    "Open": "Aç",
+    "&Save": "&Kaydet",
+    "Save As": "Farklı Kaydet",
+    "&Directory:": "&Klasör:",
+    "&Selection:": "&Seçim:",
+    "File &name:": "Dosya &adı:",
+    "File &names:": "Dosya &adları:",
+    "Files of &type:": "Dosya &türü:",
+    "Show &Hidden Directories": "&Gizli klasörleri göster",
+    "Show &Hidden Files and Directories": "&Gizli dosya ve klasörleri göster",
+    "All Files": "Tüm Dosyalar",
+    "&Yes": "&Evet",
+    "Yes": "Evet",
+    "&No": "&Hayır",
+    "No": "Hayır",
+    "&Abort": "&Durdur",
+    "&Retry": "&Yeniden dene",
+    "&Ignore": "&Yoksay",
+    "Error": "Hata",
+    "Warning": "Uyarı",
+    "Directory \"%1$s\" does not exist.": "\"%1$s\" adlı klasör yok.",
+    'File "%1$s" does not exist.': '"%1$s" adlı dosya yok.',
+    'Invalid file name "%1$s".': '"%1$s" geçerli bir dosya adı değil.',
+    'Cannot change to the directory "%1$s".\nPermission denied.': (
+        '"%1$s" klasörüne girilemiyor.\nErişim izni yok.'
+    ),
+    'File "%1$s" already exists.\nDo you want to overwrite it?': (
+        '"%1$s" adlı dosya zaten var.\nÜzerine yazılsın mı?'
+    ),
+}
+
+
+def tk_pencerelerini_turkcelestir(root: tk.Misc):
+    """Tk'nin hazır pencerelerindeki düğme ve etiketleri Türkçeye çevirir."""
+    try:
+        root.tk.eval("package require msgcat")
+        for ingilizce, turkce in TK_TURKCE_METINLER.items():
+            # Genel ad alanına yazılır; Tk'nin ::tk ad alanındaki aramaları buraya düşer.
+            root.tk.call("::msgcat::mcset", "tr", ingilizce, turkce)
+        root.tk.call("::msgcat::mclocale", "tr")
+    except tk.TclError:  # msgcat yoksa arayüz İngilizce kalır, program çalışmaya devam eder
+        pass
+
+
 def pencere_simgesini_ayarla(root: tk.Misc):
     """Program simgesini pencereye/görev çubuğuna uygular; referansı geri döndürür."""
     simge_yolu = os.path.join(PROJE_DIZINI, "simge.png")
@@ -395,11 +448,12 @@ def jpeg_uyumlu(img: Image.Image) -> Image.Image:
 class SunmesizBaskiApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Sünmesiz & Oran Korumalı A4 PDF Poster Oluşturucu")
+        self.root.title("Poster Basım — Sünmesiz & Oran Korumalı A4 PDF Poster Oluşturucu")
         self.root.geometry("1150x780")
         self.root.minsize(950, 640)
         self.font_ailesi = turkce_fontu_ayarla(self.root)
         self.pencere_simgesi = pencere_simgesini_ayarla(self.root)
+        tk_pencerelerini_turkcelestir(self.root)
 
         self.orijinal_img: Image.Image | None = None
         self.onizleme_kaynak: Image.Image | None = None

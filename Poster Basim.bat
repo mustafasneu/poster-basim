@@ -1,5 +1,5 @@
 @echo off
-rem Poster Bolucu - Windows baslaticisi. Cift tiklayin.
+rem Poster Basim - Windows baslaticisi. Cift tiklayin.
 rem Eksik bilesenleri program kendisi kurar; burada sadece uygun Python bulunur.
 setlocal
 cd /d "%~dp0"

@@ -17,6 +17,7 @@ GORSEL = os.path.join(PROJE, "manuel", "gorseller")
 CIKTI = os.path.join(PROJE, "KULLANIM_KILAVUZU.html")
 
 IMZA = "powered by Omer OZTURK"
+DEPO = "https://github.com/mustafasneu/poster-basim"
 
 
 def gomulu(ad: str, en_fazla_genislik: int = 1100, kalite: int = 80) -> str:
@@ -42,48 +43,130 @@ GOVDE = f"""
 <div class="container">
 
 <header>
-  <h1>📐 Poster Bölücü — Resimli Kullanım Kılavuzu</h1>
+  <h1>📐 Poster Basım — Resimli Kullanım Kılavuzu</h1>
   <p class="ozet">Bir görseli oranını bozmadan A4 sayfalara böler, baskıya hazır tek bir PDF
   üretir. Sayfaları kesip yapıştırdığınızda tek büyük poster elde edersiniz.
   Bu kılavuzdaki bütün ekran görüntüleri programın kendisi çalıştırılarak alınmıştır.</p>
 </header>
 
 <div class="kutu kutu-ok">
-  <strong>Kurulum gerekmiyor.</strong> Program ilk açılışta eksik bileşenleri (Pillow,
-  ReportLab) kendi klasörüne kurar; siz hiçbir şey yüklemezsiniz. Masaüstü kısayolu
-  varsa <b>“Poster Bölücü” simgesine çift tıklamanız</b> yeterlidir.
-  Kısayol yoksa program klasöründe bir kez <code>python3 kurulum.py</code> çalıştırın
-  (Windows'ta <code>python kurulum.py</code>).
+  <strong>Bu bölümü sırayla takip ederseniz program 5 dakikada çalışır.</strong>
+  Bilgisayar bilgisi gerekmez, komut yazmanız gerekmez — sadece indirip çift tıklayacaksınız.
+  Program <b>Windows, macOS ve Linux</b>'ta aynı şekilde çalışır.
 </div>
 
-<p>Program <b>Windows, macOS ve Linux</b> üzerinde aynı şekilde çalışır. Kısayol
-kullanmadan başlatmak isterseniz, kendi sisteminizin satırındaki dosyaya çift tıklayın:</p>
+<h2 id="indirme">1. Programı indirme ve açma</h2>
 
+<h3>1.1. Önce Python'u kontrol edin</h3>
+<p>Program çalışabilmek için bilgisayarda <b>Python</b> adlı ücretsiz bir alt yazılıma
+ihtiyaç duyar. Bunu bir kez kurarsınız, sonra unutursunuz.</p>
 <table>
-  <tr><th>İşletim sistemi</th><th>Çift tıklanacak dosya</th><th>Terminalden</th></tr>
-  <tr><td><b>Windows</b> 10 / 11</td><td><code>Poster Bolucu.bat</code></td>
-      <td><code>py -3 poster_bolme.py</code></td></tr>
-  <tr><td><b>macOS</b> 11+</td><td><code>Poster Bolucu.command</code></td>
-      <td><code>./calistir.sh</code></td></tr>
-  <tr><td><b>Linux</b></td><td><code>calistir.sh</code></td>
-      <td><code>./calistir.sh</code></td></tr>
+  <tr><th>Bilgisayarınız</th><th>Ne yapmanız gerekiyor</th></tr>
+  <tr><td><b>Windows</b></td>
+      <td>Genelde kurulu <u>değildir</u>. <a href="https://www.python.org/downloads/">
+      python.org/downloads</a> adresine gidin, sarı <b>“Download Python”</b> düğmesine
+      basın. İnen dosyaya çift tıklayın. Açılan pencerede
+      <b>“Add python.exe to PATH”</b> yazan kutucuğu <b>işaretleyin</b>, sonra
+      <b>“Install Now”</b>a basın. Bitince <b>Close</b> deyin. (~2 dakika)</td></tr>
+  <tr><td><b>macOS</b></td>
+      <td>Kuruludur. Hiçbir şey yapmayın, 1.2'ye geçin.</td></tr>
+  <tr><td><b>Linux</b></td>
+      <td>Kuruludur. Hiçbir şey yapmayın, 1.2'ye geçin.</td></tr>
 </table>
 
-<p>Tek şart, bilgisayarda <b>Python 3.10 veya üstü</b> bulunmasıdır — Linux ve macOS'ta
-zaten kuruludur, Windows'ta yoksa <code>python.org</code> üzerinden bir kez kurulur.</p>
+<h3>1.2. Programı indirin</h3>
+<p>Programın adresi:
+<a href="https://github.com/mustafasneu/poster-basim">github.com/mustafasneu/poster-basim</a></p>
+<p>Bu sayfada yeşil <b>“Code”</b> düğmesine, açılan listede de <b>“Download ZIP”</b>
+satırına basın. Uğraşmak istemezseniz doğrudan indirme bağlantısı:</p>
+<p><a href="https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip">
+https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip</a></p>
+<p><code>poster-basim-main.zip</code> adlı bir dosya iner; genelde <b>İndirilenler</b>
+(Downloads) klasörüne düşer.</p>
 
-<h2 id="genel">1. Program açıldığında</h2>
+<h3>1.3. İnen dosyayı klasöre çıkarın</h3>
+<p>İnen dosya sıkıştırılmıştır; önce açılması gerekir.</p>
+<table>
+  <tr><th>Bilgisayarınız</th><th>Nasıl açılır</th></tr>
+  <tr><td><b>Windows</b></td>
+      <td>Dosyaya <b>sağ tıklayın</b> → <b>“Tümünü ayıkla”</b> → <b>“Ayıkla”</b>.</td></tr>
+  <tr><td><b>macOS</b></td>
+      <td>Dosyaya <b>çift tıklayın</b>; kendisi açar.</td></tr>
+  <tr><td><b>Linux</b></td>
+      <td>Dosyaya <b>sağ tıklayın</b> → <b>“Buraya çıkart”</b>.</td></tr>
+</table>
+<p>Sonuçta <code>poster-basim-main</code> adında bir klasör oluşur. Bu klasörü
+<b>Masaüstü</b> ya da <b>Belgeler</b> gibi kalıcı bir yere taşıyın — program hep oradan
+çalışacak.</p>
+
+<h3>1.4. Programı açın</h3>
+<p>Klasörün içine girin ve <b>kendi bilgisayarınıza ait olan</b> dosyaya çift tıklayın:</p>
+<table>
+  <tr><th>Bilgisayarınız</th><th>Çift tıklanacak dosya</th><th>Not</th></tr>
+  <tr><td><b>Windows</b></td><td><code>Poster Basim.bat</code></td>
+      <td>Windows “bilinmeyen yayımcı” uyarısı verirse
+      <b>Ek bilgi</b> → <b>Yine de çalıştır</b>.</td></tr>
+  <tr><td><b>macOS</b></td><td><code>Poster Basim.command</code></td>
+      <td>İlk açışta <b>sağ tıklayıp “Aç”</b> deyin, çıkan uyarıda yine <b>“Aç”</b>a
+      basın. Bir kez yeterli.</td></tr>
+  <tr><td><b>Linux</b></td><td><code>calistir.sh</code></td>
+      <td>Soru çıkarsa <b>“Çalıştır”</b> deyin.</td></tr>
+</table>
+
+<div class="kutu kutu-bilgi">
+  <b>İlk açılış yaklaşık yarım dakika sürer ve internet gerektirir.</b> Program bu sırada
+  ihtiyacı olan iki parçayı kendi klasörüne indirir; küçük bir pencerede
+  “gerekli bileşenler kuruluyor” yazar. Bu bir kez olur, sonraki açılışlar anındadır.
+</div>
+
+<h3>1.5. Masaüstüne kısayol koyun (tavsiye edilir)</h3>
+<p>Her seferinde klasörü açmamak için masaüstüne simge koyabilirsiniz. Aynı klasörde,
+yine <b>kendi bilgisayarınıza ait</b> dosyaya bir kez çift tıklayın:</p>
+<table>
+  <tr><th>Bilgisayarınız</th><th>Çift tıklanacak dosya</th></tr>
+  <tr><td><b>Windows</b></td><td><code>Kisayol Olustur.bat</code></td></tr>
+  <tr><td><b>macOS</b></td><td><code>Kisayol Olustur.command</code></td></tr>
+  <tr><td><b>Linux</b></td><td><code>kisayol-olustur.sh</code></td></tr>
+</table>
+<p>Masaüstünde <b>“Poster Basım”</b> simgesi belirir. Bundan sonra programı hep o
+simgeye çift tıklayarak açın. Kısayolu istemezseniz masaüstünden silmeniz yeterlidir.</p>
+
+<div class="kutu kutu-uyari">
+  <b>Program klasörünü silmeyin ve yerini değiştirmeyin.</b> Masaüstündeki simge o klasörü
+  işaret eder; klasör taşınırsa simge çalışmaz. Taşımanız gerekirse, taşıdıktan sonra
+  yukarıdaki kısayol dosyasına bir kez daha çift tıklayın.
+</div>
+
+<h3>1.6. Açılmazsa</h3>
+<table>
+  <tr><th>Durum</th><th>Çözüm</th></tr>
+  <tr><td><b>Windows:</b> siyah pencere açılıp “Python bulunamadi” yazıyor</td>
+      <td>1.1 adımı atlanmış. Python'u kurun ve kurulumda
+      <b>“Add python.exe to PATH”</b> kutucuğunu işaretlemeyi unutmayın.</td></tr>
+  <tr><td><b>macOS:</b> “geliştirici doğrulanamadı” uyarısı</td>
+      <td>Dosyaya <b>sağ tıklayıp “Aç”</b> deyin ve uyarıda yine <b>“Aç”</b>a basın.
+      Program imzalı bir mağaza uygulaması olmadığı için macOS bir kez sorar.</td></tr>
+  <tr><td><b>Linux:</b> “tkinter bulunamadı” uyarısı</td>
+      <td>Terminali açıp bir kez şunu çalıştırın:
+      <code>sudo apt install -y python3-tk</code></td></tr>
+  <tr><td>Hiçbir şey olmuyor gibi</td>
+      <td>İlk açılış yarım dakika sürer. İnternet bağlantınızın açık olduğundan emin olun
+      ve bekleyin.</td></tr>
+</table>
+
+<h2 id="genel">2. Program açıldığında</h2>
 <p>Pencere iki bölümden oluşur: solda <b>ayar paneli</b>, sağda <b>önizleme alanı</b>.
 Resim seçilene kadar alttaki iki buton pasiftir (soluk görünür) — bu normaldir.</p>
 {sekil("01_baslangic.png", "Açılış ekranı", "sol panel ayarlar, sağ panel önizleme")}
 
-<h2 id="resim">2. Adım 1 — Resim seçme</h2>
-<p><code>Bilgisayardan Resim Seç</code> düğmesine basın. Açılan pencerede
-<b>Directory</b> kutusundan klasöre gidin, dosyayı çift tıklayın ya da seçip
-<b>Open</b>'a basın.</p>
+<h2 id="resim">3. Adım 1 — Resim seçme</h2>
+<p><code>Bilgisayardan Resim Seç</code> düğmesine basın. Açılan pencerede üstteki
+<b>Klasör</b> kutusundan resmin bulunduğu klasöre gidin, sonra dosyaya çift tıklayın
+(ya da bir kez tıklayıp sağdaki <b>Aç</b> düğmesine basın). Vazgeçmek için
+<b>İptal</b>.</p>
 <p>Desteklenen biçimler: <code>.jpg .jpeg .png .bmp .webp .tif .tiff</code>.
 Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
-{sekil("02_dosya_secme.png", "Dosya seçme penceresi", "sistemin standart Tk penceresidir")}
+{sekil("02_dosya_secme.png", "Dosya seçme penceresi", "Klasör · Dosya adı · Aç · İptal")}
 
 <div class="kutu kutu-bilgi">
   <b>Hangi çözünürlük yeterli?</b> Kaba ölçü: her A4 sayfa için yaklaşık
@@ -92,12 +175,12 @@ Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
   toparlar ama yok etmez.
 </div>
 
-<h2 id="onizleme">3. Adım 2 — Önizleme</h2>
+<h2 id="onizleme">4. Adım 2 — Önizleme</h2>
 <p>Resim yüklendiğinde dosya adı sol panelde, kaynak çözünürlük ise sağ altta yazar.
 Önizleme hız için küçültülmüş kopyadır; <b>PDF her zaman tam çözünürlükten üretilir</b>.</p>
 {sekil("03_resim_yuklendi.png", "Resim yüklendikten sonra", "sağ altta kaynak çözünürlük bilgisi")}
 
-<h2 id="bolme">4. Adım 3 — Poster ölçüsünü belirleme</h2>
+<h2 id="bolme">5. Adım 3 — Poster ölçüsünü belirleme</h2>
 {sekil("04b_bolme_paneli.png", "Bölme ayarları", "", 620)}
 <table>
   <tr><th>Ayar</th><th>Ne işe yarar</th><th>Öneri</th></tr>
@@ -126,7 +209,7 @@ Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
   oranına yaklaştırın (örneğin 2:1 bir görsel için 4×2 yatay).
 </div>
 
-<h2 id="iyilestirme">5. Adım 4 — Görüntü iyileştirme</h2>
+<h2 id="iyilestirme">6. Adım 4 — Görüntü iyileştirme</h2>
 <p>Dört sürgü doğrudan önizlemeye yansır; değişiklik anında görünür. Baskı, ekrandan daha
 mat çıktığı için hafif kontrast ve canlılık artışı genellikle işe yarar.</p>
 {sekil("05b_surgu_paneli.png", "İyileştirme sürgüleri", "", 620)}
@@ -141,16 +224,16 @@ mat çıktığı için hafif kontrast ve canlılık artışı genellikle işe ya
 <p><code>Ayarları Sıfırla</code> dört sürgüyü de 1.0'a döndürür.</p>
 {sekil("05_iyilestirme.png", "İyileştirme uygulanmış hali", "sürgüler sağa alındığında önizleme anında güncellenir")}
 
-<h2 id="uretim">6. Adım 5 — PDF üretme</h2>
+<h2 id="uretim">7. Adım 5 — PDF üretme</h2>
 <p><code>Oranı Koru ve Hazır PDF Üret</code> düğmesine basın. Alt satırda
 “Parça üretiliyor: 3 / 6” gibi ilerleme görünür; büyük görsellerde bu birkaç saniye sürer.
 Bitince özet penceresi açılır.</p>
 {sekil("06_tamamlandi.png", "Üretim tamamlandı penceresi", "çıktı klasörünün tam yolunu gösterir")}
-<p>Pencereyi <b>OK</b> ile kapattıktan sonra <code>Çıktı Klasörünü Aç</code> düğmesi
+<p>Pencereyi <b>Tamam</b> ile kapattıktan sonra <code>Çıktı Klasörünü Aç</code> düğmesi
 etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
 {sekil("07_bitis_durumu.png", "Üretim sonrası ana ekran", "alt satırda üretilen PDF adı yazar")}
 
-<h2 id="cikti">7. Çıktı klasöründe ne var?</h2>
+<h2 id="cikti">8. Çıktı klasöründe ne var?</h2>
 <p>Her üretim, tarih-saat damgalı ayrı bir klasöre yazılır; eski çıktıların üzerine
 <b>asla</b> yazılmaz.</p>
 <pre><code>Masaüstü/
@@ -164,7 +247,7 @@ etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
 bastırmak veya başka bir programda kullanmak isterseniz durur.</p>
 {sekil("09_a4_sayfa_ornegi.png", "PDF'in ilk sayfası", "her sayfa tek bir parçayı taşır", 900)}
 
-<h2 id="yazdirma">8. Yazdırma ayarları (en kritik adım)</h2>
+<h2 id="yazdirma">9. Yazdırma ayarları (en kritik adım)</h2>
 <div class="kutu kutu-uyari">
   <strong>⚠️ “Sayfaya Sığdır / Fit to Page” seçeneğini KAPATIN.</strong><br>
   Yazdırma penceresinde ölçeklendirmeyi <b>“Gerçek Boyut (Actual Size)”</b> veya
@@ -178,7 +261,7 @@ bastırmak veya başka bir programda kullanmak isterseniz durur.</p>
   <li><b>Kalite:</b> fotoğraf / yüksek</li>
 </ul>
 
-<h2 id="birlestirme">9. Kesme ve birleştirme</h2>
+<h2 id="birlestirme">10. Kesme ve birleştirme</h2>
 <p>Program her sayfaya, komşusuyla ortak olan bir <b>bindirme şeridi</b> basar. Bu şerit
 sayesinde parçalar üst üste bindirilerek hizalanır.</p>
 <ol>
@@ -193,7 +276,7 @@ sayesinde parçalar üst üste bindirilerek hizalanır.</p>
 yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
 {sekil("08_montaj_dogrulama.png", "6 parçanın birleştirilmiş hali", "ek yerlerinde kayma veya sünme yok")}
 
-<h2 id="sorun">10. Sık karşılaşılan durumlar</h2>
+<h2 id="sorun">11. Sık karşılaşılan durumlar</h2>
 <table>
   <tr><th>Durum</th><th>Sebep / Çözüm</th></tr>
   <tr><td>Parçalar birleşmiyor, kayıyor</td>
@@ -215,7 +298,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
       <td>Dosyaya sağ tıklayıp <b>Aç</b> deyin ve bir kez onaylayın; sonraki açılışlarda
           sormaz. Kod imzalı bir uygulama değil, düz bir betiktir.</td></tr>
   <tr><td><b>macOS:</b> <code>.command</code> dosyası açılmıyor</td>
-      <td>Terminalde bir kez: <code>chmod +x "Poster Bolucu.command"</code></td></tr>
+      <td>Terminalde bir kez: <code>chmod +x "Poster Basim.command"</code></td></tr>
   <tr><td><b>Linux:</b> “tkinter bulunamadı” uyarısı</td>
       <td>Bir kez: <code>sudo apt install -y python3-tk</code> (Fedora:
           <code>sudo dnf install -y python3-tkinter</code>).</td></tr>
@@ -223,7 +306,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
       <td>Yalnızca ilk seferde bileşenler indirilir (~30 sn). Sonraki açılışlar anındadır.</td></tr>
 </table>
 
-<h2 id="teknik">11. Teknik notlar</h2>
+<h2 id="teknik">12. Teknik notlar</h2>
 <ul>
   <li><b>Sünme yok:</b> Görsel, sayfa matrisinin oranına <i>doldurularak değil</i>, oranı
       korunarak yerleştirilir; artan alan beyaz bırakılır.</li>
@@ -235,55 +318,58 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
   <li><b>Kullanılan kütüphaneler:</b> Pillow (görüntü işleme), ReportLab (PDF), Tkinter (arayüz).</li>
   <li><b>Çalıştığı sistemler:</b> Windows 10/11, Linux ve macOS. Aynı dosyalar üç sistemde
       de çalışır; masaüstü kısayolu <code>kurulum.py</code> ile her sistemde oluşturulur.</li>
-  <li><b>Program dosyaları:</b> <code>poster_bolme.py</code> (program),
-      <code>kurulum.py</code> (kısayol oluşturucu), <code>Poster Bolucu.bat</code> /
-      <code>Poster Bolucu.command</code> / <code>calistir.sh</code> (başlatıcılar),
-      <code>.venv/</code> (bağımlılıklar, ilk açılışta oluşur).</li>
-  <li><b>Kaynak kodu:</b> <code>github.com/mustafasneu/poster-bolucu</code></li>
+  <li><b>Program dosyaları:</b> <code>poster_bolme.py</code> (programın kendisi);
+      başlatıcılar <code>Poster Basim.bat</code> (Windows),
+      <code>Poster Basim.command</code> (macOS), <code>calistir.sh</code> (Linux);
+      kısayol oluşturucular <code>Kisayol Olustur.bat</code>,
+      <code>Kisayol Olustur.command</code>, <code>kisayol-olustur.sh</code> ve bunların
+      çağırdığı <code>kurulum.py</code>; <code>.venv/</code> (bağımlılıklar, ilk açılışta
+      oluşur).</li>
+  <li><b>Kaynak kodu:</b> <code>github.com/mustafasneu/poster-basim</code></li>
 </ul>
 
-<h2 id="kurulum">12. Kurulum — başka bir bilgisayara taşıma</h2>
-<p>Program tek bir klasörden ibarettir. Klasörü kopyalayın ya da
-<code>github.com/mustafasneu/poster-bolucu</code> adresinden indirin; üç sistemde de
-aşağıdaki iki adım yeterlidir.</p>
-
-<h3>Adım 1 — Python'un bulunması</h3>
+<h2 id="baglantilar">13. Bağlantılar</h2>
+<p>İhtiyaç duyabileceğiniz bütün adresler:</p>
 <table>
-  <tr><th>Sistem</th><th>Yapılacak</th></tr>
-  <tr><td><b>Windows</b></td>
-      <td><code>python.org/downloads</code> → Python 3 kurun. Kurulum ekranında
-          <b>“Add python.exe to PATH”</b> ve <b>“tcl/tk and IDLE”</b> işaretli kalsın.</td></tr>
-  <tr><td><b>macOS</b></td>
-      <td>Genelde kuruludur. Arayüz açılmazsa bir kez:
-          <code>brew install python-tk</code></td></tr>
-  <tr><td><b>Linux</b></td>
-      <td>Kuruludur. Arayüz açılmazsa bir kez:
-          <code>sudo apt install -y python3-tk</code> (Fedora:
-          <code>sudo dnf install -y python3-tkinter</code>, Arch:
-          <code>sudo pacman -S --needed tk</code>)</td></tr>
+  <tr><th>Ne için</th><th>Adres</th></tr>
+  <tr><td><b>Programın sayfası</b> (her şey burada)</td>
+      <td><a href="{DEPO}">{DEPO}</a></td></tr>
+  <tr><td><b>Programı indir</b> (ZIP, doğrudan)</td>
+      <td><a href="{DEPO}/archive/refs/heads/main.zip">{DEPO}/archive/refs/heads/main.zip</a></td></tr>
+  <tr><td><b>Bu kılavuz</b> (PDF)</td>
+      <td><a href="{DEPO}/raw/main/KULLANIM_KILAVUZU.pdf">{DEPO}/raw/main/KULLANIM_KILAVUZU.pdf</a></td></tr>
+  <tr><td><b>Bu kılavuz</b> (web sayfası)</td>
+      <td><a href="{DEPO}/raw/main/KULLANIM_KILAVUZU.html">{DEPO}/raw/main/KULLANIM_KILAVUZU.html</a></td></tr>
+  <tr><td><b>Python indirme</b> (yalnızca Windows'ta gerekir)</td>
+      <td><a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></td></tr>
+  <tr><td><b>Sorun bildirme / soru sorma</b></td>
+      <td><a href="{DEPO}/issues">{DEPO}/issues</a></td></tr>
 </table>
 
-<h3>Adım 2 — Kısayolu oluşturma</h3>
-<p>Program klasöründe bir kez şunu çalıştırın; masaüstüne çift tıklanabilir bir simge
-koyar (Windows'ta <code>.lnk</code>, macOS'ta <code>.command</code>, Linux'ta
-<code>.desktop</code>):</p>
-<pre><code>python3 kurulum.py</code></pre>
-<p>Windows'ta komut <code>python kurulum.py</code> biçimindedir. Kısayolu kaldırmak için
-<code>python3 kurulum.py --kaldir</code>.</p>
-
+<h2 id="kurulum">14. Kaldırma, taşıma ve internetsiz kurulum</h2>
 <div class="kutu kutu-ok">
-  <strong>Pillow ve ReportLab'ı elle kurmanıza gerek yok.</strong> Program ilk açılışta
-  kendi klasöründe bir <code>.venv</code> ortamı oluşturup bu iki bileşeni oraya indirir;
-  sisteminizdeki Python'a hiçbir şey yazmaz. Bu yüzden ilk açılış ~30 saniye sürer,
-  sonrakiler anında açılır. Programı silmek için klasörü ve kısayolu silmek yeterlidir.
+  <strong>Programı kaldırmak:</strong> <code>poster-basim-main</code> klasörünü ve
+  masaüstündeki “Poster Basım” simgesini silin. Bu kadar — program bilgisayarınızın
+  başka hiçbir yerine dosya yazmaz, kayıt defterine dokunmaz. Ürettiğiniz posterler
+  masaüstündeki <code>Bolu_Parcalanmis_Resimler</code> klasöründe kalır; onları da
+  istemiyorsanız ayrıca silin.
 </div>
-
 <div class="kutu kutu-bilgi">
-  <b>İnternetsiz kurulum:</b> Bileşenlerin inebilmesi için ilk açılışta internet gerekir.
-  İnternetsiz bir bilgisayara taşıyacaksanız, çalışan makinedeki <code>.venv</code>
-  klasörünü değil, şu komutla hazırlanan tekerlek dosyalarını taşıyın:
-  <code>pip download pillow reportlab -d paketler</code>, sonra hedef makinede
-  <code>pip install --no-index --find-links paketler pillow reportlab</code>.
+  <b>Başka bir bilgisayara taşımak:</b> Klasörü olduğu gibi kopyalamanız yeterli
+  (USB bellek de olur). Yeni bilgisayarda 1.4 ve 1.5 adımlarını tekrarlayın. İşletim
+  sistemi farklı olsa bile aynı klasör çalışır.
+</div>
+<div class="kutu kutu-bilgi">
+  <b>Telefon ve tabletler:</b> Program masaüstü bilgisayarlar içindir; Android ve
+  iPhone'da çalışmaz. Telefonunuzdaki bir fotoğrafı bölmek isterseniz fotoğrafı önce
+  bilgisayara aktarın (kablo, e-posta ya da bulut ile).
+</div>
+<div class="kutu kutu-bilgi">
+  <b>İnternetsiz bilgisayarda kurulum:</b> İlk açılışta iki bileşenin inmesi için internet
+  gerekir. Hiç internet olmayacaksa, internetli bir bilgisayarda
+  <code>pip download pillow reportlab -d paketler</code> komutuyla hazırlanan
+  <code>paketler</code> klasörünü de taşıyın ve hedef makinede
+  <code>pip install --no-index --find-links paketler pillow reportlab</code> çalıştırın.
 </div>
 
 <footer>
@@ -298,7 +384,7 @@ SAYFA = f"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Poster Bölücü — Resimli Kullanım Kılavuzu</title>
+<title>Poster Basım — Resimli Kullanım Kılavuzu</title>
 <style>
   :root {{
     --ana: #2563eb; --zemin: #f1f5f9; --kart: #ffffff; --metin: #1e293b;
@@ -321,6 +407,7 @@ SAYFA = f"""<!DOCTYPE html>
     border-bottom: 2px solid var(--kenar); font-size: 1.35rem;
   }}
   h3 {{ margin-top: 26px; margin-bottom: 6px; font-size: 1.08rem; color: var(--metin); }}
+  a {{ color: var(--ana); word-break: break-all; }}
   figure {{ margin: 22px 0; }}
   figure img {{
     width: 100%; height: auto; border: 1px solid var(--kenar);
