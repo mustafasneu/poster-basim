@@ -251,24 +251,66 @@ def _kurulum_penceresini_kapat():
         _pencere = None
 
 
+def _cekirdek_tamam() -> bool:
+    """Arayüz, görüntü ve PDF bileşenleri bu yorumlayıcıda var mı?"""
+    try:
+        import PIL  # noqa: F401, PLC0415
+        import reportlab  # noqa: F401, PLC0415
+        import tkinter  # noqa: F401, PLC0415
+    except ImportError:
+        return False
+    return True
+
+
+def _mevcut_ortam_tamam() -> bool:
+    """Programın çalışması için gereken her şey bu yorumlayıcıda var mı?"""
+    if not _cekirdek_tamam():
+        return False
+    try:
+        import certifi  # noqa: F401, PLC0415
+        import truststore  # noqa: F401, PLC0415
+    except ImportError:
+        return False
+    return True
+
+
+def _eksikleri_buraya_kur() -> bool:
+    """Küçük eksik paketleri çalışılan yorumlayıcıya kurar (venv kurmadan).
+
+    Kullanıcının kendi Python'unu kullandığı kurulumlarda venv hiç oluşmaz; bu
+    durumda sonradan eklenen paketler (sertifika desteği gibi) başka türlü
+    yerleşemez ve kullanıcı elle komut çalıştırmak zorunda kalırdı.
+    """
+    _bildir("Eksik bir bileşen kuruluyor, birkaç saniye sürecek...")
+    for ek in ([], ["--user"]):  # yazma izni yoksa kullanıcı klasörüne kurulur
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet", *ek, "certifi", "truststore"],
+                timeout=900,
+                check=False,
+                **_SESSIZ,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if _mevcut_ortam_tamam():
+            _kurulum_penceresini_kapat()
+            return True
+    _kurulum_penceresini_kapat()
+    return False
+
+
 def _bagimliliklari_hazirla():
     """Eksikler varsa kurar ve programı hazır ortamla yeniden başlatır."""
     if PAKETLENMIS:  # paket zaten her şeyi içeriyor
         return
-    try:  # her şey yerindeyse hiçbir şey yapma
-        import tkinter  # noqa: F401
-        import PIL  # noqa: F401
-        import reportlab  # noqa: F401
-
-        # Sertifika paketleri de aranır: eksikse macOS'ta bütün https indirmeleri
-        # sertifika hatasıyla düşer. Bunlar sonradan eklendiği için eski
-        # kurulumlarda bulunmaz; burada aranmazsa ortam kendini onaramaz.
-        import certifi  # noqa: F401
-        import truststore  # noqa: F401
-
+    if _mevcut_ortam_tamam():
         return
-    except ImportError:
-        pass
+
+    # Çekirdek bileşenler yerindeyse (arayüz + görüntü + PDF) yeni bir ortam kurmaya
+    # gerek yok; yalnızca sonradan eklenen küçük paketler bu yorumlayıcıya kurulur.
+    # Kullanıcının kendi kurduğu Python'larda venv hiç oluşmaz, bu yol oraları da onarır.
+    if _cekirdek_tamam() and _eksikleri_buraya_kur():
+        return
 
     if os.environ.get(YENIDEN_BASLATMA_ISARETI):  # sonsuz döngü koruması
         raise SystemExit(
@@ -1294,6 +1336,84 @@ def montaj_haritasi_ciz(pdf_canvas, sayfa_w, sayfa_h, toplam_satir, toplam_sutun
     pdf_canvas.showPage()
 
 
+# ------------------------------------------------------ dinamik hata yakalama / onarım
+SORUN_GUNLUGU = os.path.join(veri_dizini(), "sorun_gunlugu.txt")
+
+
+def sorunu_gunlukle(nerede: str, hata: BaseException) -> None:
+    """Hatayı ayrıntılarıyla dosyaya yazar; kullanıcıdan bilgi istemeye gerek kalmasın."""
+    import platform  # noqa: PLC0415
+    import traceback  # noqa: PLC0415
+
+    try:
+        with open(SORUN_GUNLUGU, "a", encoding="utf-8") as dosya:
+            dosya.write(f"\n{'=' * 60}\n{datetime.now():%Y-%m-%d %H:%M:%S} — {nerede}\n")
+            dosya.write(
+                f"sistem: {platform.platform()} | python: {platform.python_version()} "
+                f"| paketlenmis: {PAKETLENMIS}\n"
+            )
+            dosya.write("".join(traceback.format_exception(hata)))
+    except OSError:
+        pass
+
+
+def _paket_kur(*paketler: str) -> bool:
+    """Verilen paketleri çalışılan yorumlayıcıya kurar (gerekirse --user ile)."""
+    for ek in ([], ["--user"]):
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet", *ek, *paketler],
+                timeout=900,
+                check=False,
+                **_SESSIZ,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        try:
+            for paket in paketler:
+                __import__(paket.split(">=")[0].split("==")[0].replace("-", "_"))
+            return True
+        except ImportError:
+            continue
+    return False
+
+
+def otomatik_onar(hata: BaseException) -> str | None:
+    """Bilinen hataları kullanıcıya sormadan onarır.
+
+    Dönüş: onarım yapıldıysa ne yapıldığını anlatan kısa metin, yoksa None.
+    Program bunun ardından işlemi bir kez daha dener.
+    """
+    metin = f"{type(hata).__name__}: {hata}"
+
+    # 1) Sertifika doğrulaması: sertifika paketleri eksik olabilir.
+    if "CERTIFICATE_VERIFY_FAILED" in metin or "SSLCertVerification" in metin:
+        if _paket_kur("certifi", "truststore"):
+            return "sertifika desteği kuruldu"
+
+    # 2) Eksik modül: paket adı hatadan çıkarılıp kurulur.
+    if isinstance(hata, ModuleNotFoundError) and hata.name:
+        karsilik = {
+            "PIL": "pillow>=10",
+            "pypdfium2": PDF_PAKETI,
+            "pillow_heif": HEIC_PAKETI,
+            "rawpy": RAW_PAKETI,
+            "onnxruntime": AI_MOTOR_PAKETI,
+            "certifi": "certifi",
+            "truststore": "truststore",
+            "reportlab": "reportlab>=4",
+        }
+        paket = karsilik.get(hata.name)
+        if paket and _paket_kur(paket):
+            return f"eksik bileşen kuruldu ({hata.name})"
+
+    # 3) Yazma izni / dolu disk: çıktı klasörü zaten yedek yollara düşüyor,
+    #    burada yalnızca geçici klasör temizlenir.
+    if isinstance(hata, OSError) and getattr(hata, "errno", None) in (13, 28):
+        return None
+    return None
+
+
 def dogal_anahtar(metin: str):
     """'resim2' < 'resim10' olacak şekilde sıralama anahtarı (sözlük sırası yanıltır)."""
     import re
@@ -1375,6 +1495,10 @@ class SunmesizBaskiApp:
         self.dizme_dosyalari: list[str] = []
         self.kaynak_profili: str | None = None
 
+        # Tkinter, olay içindeki hataları konsola yazıp yutar; kullanıcı hiçbir şey
+        # görmez. Hepsini yakalayıp onarım hattına veriyoruz.
+        self.root.report_callback_exception = self.tk_hatasini_yakala
+
         self.arayuz_tasarla()
 
     # ------------------------------------------------------------------ arayüz
@@ -1400,7 +1524,7 @@ class SunmesizBaskiApp:
         self.kaydet_btn = ttk.Button(
             eylem,
             text="Oranı Koru ve Hazır PDF Üret",
-            command=self.parcala_ve_pdf_yap,
+            command=lambda: self.korumali("üretim", self.parcala_ve_pdf_yap),
             state=tk.DISABLED,
         )
         self.kaydet_btn.pack(fill=tk.X, pady=(12, 6))
@@ -1440,9 +1564,17 @@ class SunmesizBaskiApp:
         ttk.Label(ayarlar, text="--- 1. DOSYA SEÇİMİ ---", font=(self.font_ailesi, 11, "bold")).pack(
             pady=5, anchor=tk.W
         )
-        self.dosya_btn = ttk.Button(ayarlar, text="Bilgisayardan Dosya Seç (Resim / PDF)", command=self.resim_sec)
+        self.dosya_btn = ttk.Button(
+            ayarlar,
+            text="Bilgisayardan Dosya Seç (Resim / PDF)",
+            command=lambda: self.korumali("dosya seçme", self.resim_sec),
+        )
         self.dosya_btn.pack(fill=tk.X, pady=(5, 3))
-        self.link_btn = ttk.Button(ayarlar, text="İnternetten Link ile Al", command=self.linkten_al)
+        self.link_btn = ttk.Button(
+            ayarlar,
+            text="İnternetten Link ile Al",
+            command=lambda: self.korumali("link ile alma", self.linkten_al),
+        )
         self.link_btn.pack(fill=tk.X, pady=(0, 5))
         self.dosya_lbl = ttk.Label(
             ayarlar, text="Henüz dosya seçilmedi...", wraplength=220, foreground="gray"
@@ -1539,7 +1671,9 @@ class SunmesizBaskiApp:
         ).pack(anchor=tk.W, pady=(0, 6))
 
         ttk.Button(
-            ayarlar, text="AI ile Büyüt (eklenti gerekir)", command=self.ai_ile_buyut_istegi
+            ayarlar,
+            text="AI ile Büyüt (eklenti gerekir)",
+            command=lambda: self.korumali("AI büyütme", self.ai_ile_buyut_istegi),
         ).pack(fill=tk.X, pady=(4, 2))
         self.ai_durum_lbl = ttk.Label(ayarlar, text="", wraplength=220, foreground="gray")
         self.ai_durum_lbl.pack(anchor=tk.W, pady=(0, 8))
@@ -1802,7 +1936,15 @@ class SunmesizBaskiApp:
             except ValueError as hata:
                 kuyruk.put(("hata", str(hata)))
             except Exception as hata:  # beklenmedik durumda da kullanıcı bilgilendirilsin
-                kuyruk.put(("hata", f"İndirme sırasında beklenmedik bir sorun çıktı:\n{hata}"))
+                sorunu_gunlukle("link indirme", hata)
+                if otomatik_onar(hata):  # ör. sertifika paketi kuruldu: bir kez daha dene
+                    try:
+                        kuyruk.put(("tamam", linkten_resim_indir(baglanti, self._indirme_dizini)))
+                        return
+                    except Exception as ikinci:
+                        sorunu_gunlukle("link indirme (onarım sonrası)", ikinci)
+                        hata = ikinci
+                kuyruk.put(("hata", f"İndirme sırasında sorun çıktı:\n{hata}"))
 
         def yokla():
             try:
@@ -2650,6 +2792,56 @@ class SunmesizBaskiApp:
         ).pack(side=tk.LEFT, padx=6)
         ttk.Button(alt, text="Kapat", command=pencere.destroy).pack(side=tk.RIGHT)
         ciz()
+
+    # --------------------------------------------------- dinamik hata yakalama / onarım
+    def korumali(self, isim: str, islev, *args):
+        """Bir işi çalıştırır; hata çıkarsa onarmayı deneyip bir kez daha dener.
+
+        Amaç: kullanıcının komut satırıyla uğraşmaması. Onarılamayan hatalar bile
+        programı düşürmez; günlüğe yazılır ve anlaşılır bir mesajla bildirilir.
+        """
+        try:
+            return islev(*args)
+        except Exception as hata:  # her tür hata: program çökmemeli
+            sorunu_gunlukle(isim, hata)
+            self.durum_lbl.config(text="Sorun çözülmeye çalışılıyor...")
+            self.root.update_idletasks()
+            yapilan = otomatik_onar(hata)
+            if yapilan:
+                try:
+                    sonuc = islev(*args)
+                    self.durum_lbl.config(text=f"Sorun kendiliğinden giderildi ({yapilan}).")
+                    return sonuc
+                except Exception as ikinci:
+                    sorunu_gunlukle(f"{isim} (onarım sonrası)", ikinci)
+                    hata = ikinci
+            self.durum_lbl.config(text="İşlem tamamlanamadı.")
+            self.hatayi_bildir(isim, hata)
+            return None
+
+    def hatayi_bildir(self, isim: str, hata: BaseException):
+        """Kullanıcıya anlaşılır mesaj gösterir ve günlüğün yerini söyler."""
+        aciklama = str(hata).strip() or type(hata).__name__
+        messagebox.showerror(
+            "Sorun",
+            f"{aciklama}\n\n"
+            "Program çalışmaya devam ediyor. Sorun sürerse ayrıntılı kayıt şurada:\n"
+            f"{SORUN_GUNLUGU}",
+        )
+
+    def tk_hatasini_yakala(self, *_):
+        """Tkinter'ın olay döngüsünde oluşan hataları yakalar (yoksa sessizce kaybolur)."""
+        import sys as _sys  # noqa: PLC0415
+
+        hata = _sys.exc_info()[1]
+        if hata is None:
+            return
+        sorunu_gunlukle("arayüz olayı", hata)
+        yapilan = otomatik_onar(hata)
+        if yapilan:
+            self.durum_lbl.config(text=f"Sorun kendiliğinden giderildi ({yapilan}).")
+            return
+        self.hatayi_bildir("arayüz olayı", hata)
 
     def _kenar_boslugu_mm(self) -> float:
         try:

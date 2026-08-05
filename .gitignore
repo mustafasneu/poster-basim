@@ -23,3 +23,6 @@ dist/
 
 # AI büyütme eklentisi (kullanıcı isterse kendi indirir)
 eklentiler/
+
+# Hata günlüğü
+sorun_gunlugu.txt
