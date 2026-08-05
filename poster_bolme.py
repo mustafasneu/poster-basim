@@ -25,6 +25,7 @@ GEREKLI_PAKETLER = (
     "pypdfium2>=4",
     "pillow-heif>=0.16",
     "rawpy>=0.21",
+    "certifi",  # macOS'ta https sertifika doğrulaması için
 )
 # Bu üç bileşen programın açılması için şart değildir; kurulamazlarsa yalnızca ilgili
 # biçim devre dışı kalır, program çalışmaya devam eder (bkz. _calisir_mi).
@@ -568,6 +569,32 @@ EN_BUYUK_INDIRME = 60 * 1024 * 1024  # 60 MB; poster kaynağı için fazlasıyla
 INDIRME_ZAMAN_ASIMI = 30
 
 
+def _ssl_baglami():
+    """İndirme için SSL bağlamı.
+
+    macOS'ta python.org kurulumu sistemin sertifika deposunu kullanmaz; bu yüzden
+    https adresleri "certificate verify failed" ile düşer. Varsa certifi'nin
+    sertifika paketi kullanılarak bu sorun kaynağında çözülür.
+    """
+    import ssl  # noqa: PLC0415
+
+    try:
+        import certifi  # noqa: PLC0415
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+_SSL_COZUMU = (
+    "Güvenli bağlantı kurulamadı (sertifika doğrulanamadı).\n\n"
+    "macOS kullanıyorsanız: Uygulamalar → Python 3.x klasöründeki\n"
+    "\"Install Certificates.command\" dosyasına çift tıklayın, sonra tekrar deneyin.\n\n"
+    "Sorun sürerse görseli tarayıcıdan indirip\n"
+    "\"Bilgisayardan Dosya Seç\" ile açabilirsiniz."
+)
+
+
 def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
     """Verilen web adresindeki resmi indirip yerel bir dosya yolu döndürür.
 
@@ -595,7 +622,9 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
         },
     )
     try:
-        with urllib.request.urlopen(istek, timeout=INDIRME_ZAMAN_ASIMI) as yanit:
+        with urllib.request.urlopen(
+            istek, timeout=INDIRME_ZAMAN_ASIMI, context=_ssl_baglami()
+        ) as yanit:
             tur = (yanit.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             bildirilen = yanit.headers.get("Content-Length")
             if bildirilen and bildirilen.isdigit() and int(bildirilen) > EN_BUYUK_INDIRME:
@@ -616,6 +645,8 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
     except urllib.error.HTTPError as hata:
         raise ValueError(f"Adrese erişilemedi (sunucu {hata.code} döndürdü).") from hata
     except urllib.error.URLError as hata:
+        if "CERTIFICATE_VERIFY_FAILED" in str(hata.reason) or "SSL" in str(hata.reason):
+            raise ValueError(_SSL_COZUMU) from hata
         raise ValueError(
             f"Bağlantı kurulamadı: {hata.reason}\nİnternet bağlantınızı kontrol edin."
         ) from hata
@@ -960,7 +991,9 @@ def ai_eklentisini_kur(bildir) -> None:
             istek = urllib.request.Request(
                 AI_MODEL_ADRESI, headers={"User-Agent": "PosterBasim/1.0"}
             )
-            with urllib.request.urlopen(istek, timeout=120) as yanit, open(gecici, "wb") as dosya:
+            with urllib.request.urlopen(
+                istek, timeout=120, context=_ssl_baglami()
+            ) as yanit, open(gecici, "wb") as dosya:
                 toplam = int(yanit.headers.get("Content-Length") or 0)
                 inen = 0
                 while parca := yanit.read(1024 * 256):
@@ -972,6 +1005,8 @@ def ai_eklentisini_kur(bildir) -> None:
         except (urllib.error.URLError, OSError) as hata:
             if os.path.exists(gecici):
                 os.remove(gecici)
+            if "CERTIFICATE_VERIFY_FAILED" in str(hata) or "SSL" in str(hata):
+                raise ValueError(_SSL_COZUMU) from hata
             raise ValueError(f"Model indirilemedi:\n{hata}") from hata
 
 
