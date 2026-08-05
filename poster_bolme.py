@@ -26,6 +26,7 @@ GEREKLI_PAKETLER = (
     "pillow-heif>=0.16",
     "rawpy>=0.21",
     "certifi",  # macOS'ta https sertifika doğrulaması için
+    "truststore",  # işletim sisteminin kendi sertifika deposunu kullanır
 )
 # Bu üç bileşen programın açılması için şart değildir; kurulamazlarsa yalnızca ilgili
 # biçim devre dışı kalır, program çalışmaya devam eder (bkz. _calisir_mi).
@@ -105,7 +106,7 @@ def _calisir_mi(python_yolu: str) -> bool:
             subprocess.run(
                 # certifi de aranır: eski kurulumlarda eksik kalırsa macOS'ta bütün
                 # https indirmeleri sertifika hatasıyla düşer, ortam kendini onarsın.
-                [python_yolu, "-c", "import tkinter, PIL, reportlab, certifi"],
+                [python_yolu, "-c", "import tkinter, PIL, reportlab, certifi, truststore"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=90,
@@ -571,15 +572,24 @@ EN_BUYUK_INDIRME = 60 * 1024 * 1024  # 60 MB; poster kaynağı için fazlasıyla
 INDIRME_ZAMAN_ASIMI = 30
 
 
-def _ssl_baglami():
+def _ssl_baglami(zorla_certifi: bool = False):
     """İndirme için SSL bağlamı.
 
     macOS'ta python.org kurulumu sistemin sertifika deposunu kullanmaz; bu yüzden
-    https adresleri "certificate verify failed" ile düşer. Varsa certifi'nin
-    sertifika paketi kullanılarak bu sorun kaynağında çözülür.
+    https adresleri "certificate verify failed" ile düşer. Kullanıcıdan hiçbir şey
+    istemeden çözmek için iki kaynak sırayla denenir:
+    1) truststore — işletim sisteminin kendi sertifika deposunu kullanır (en doğrusu),
+    2) certifi — programla birlikte gelen sertifika paketi.
     """
     import ssl  # noqa: PLC0415
 
+    if not zorla_certifi:
+        try:
+            import truststore  # noqa: PLC0415
+
+            return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        except Exception:  # truststore yoksa ya da bu sistemde çalışmıyorsa
+            pass
     try:
         import certifi  # noqa: PLC0415
 
@@ -588,12 +598,34 @@ def _ssl_baglami():
         return ssl.create_default_context()
 
 
+def guvenli_ac(istek, zaman_asimi: int):
+    """urlopen'ı sertifika kaynaklarını sırayla deneyerek çağırır.
+
+    Bir kaynak sertifikayı doğrulayamazsa diğerine geçilir; kullanıcının elle
+    sertifika kurmasına gerek kalmaz.
+    """
+    import ssl  # noqa: PLC0415
+    import urllib.error  # noqa: PLC0415
+    import urllib.request  # noqa: PLC0415
+
+    son_hata = None
+    for zorla_certifi in (False, True):
+        try:
+            return urllib.request.urlopen(
+                istek, timeout=zaman_asimi, context=_ssl_baglami(zorla_certifi)
+            )
+        except urllib.error.URLError as hata:
+            if not isinstance(getattr(hata, "reason", None), ssl.SSLError):
+                raise
+            son_hata = hata
+    raise son_hata
+
+
 _SSL_COZUMU = (
-    "Güvenli bağlantı kurulamadı (sertifika doğrulanamadı).\n\n"
-    "macOS kullanıyorsanız: Uygulamalar → Python 3.x klasöründeki\n"
-    "\"Install Certificates.command\" dosyasına çift tıklayın, sonra tekrar deneyin.\n\n"
-    "Sorun sürerse görseli tarayıcıdan indirip\n"
-    "\"Bilgisayardan Dosya Seç\" ile açabilirsiniz."
+    "Güvenli bağlantı kurulamadı: sunucunun sertifikası doğrulanamadı.\n\n"
+    "Bu genellikle kurumsal ağlarda araya giren güvenlik duvarından ya da\n"
+    "yanlış sistem saatinden kaynaklanır. Başka bir ağda deneyin.\n\n"
+    "Acilse görseli tarayıcıdan indirip \"Bilgisayardan Dosya Seç\" ile açabilirsiniz."
 )
 
 
@@ -624,9 +656,7 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
         },
     )
     try:
-        with urllib.request.urlopen(
-            istek, timeout=INDIRME_ZAMAN_ASIMI, context=_ssl_baglami()
-        ) as yanit:
+        with guvenli_ac(istek, INDIRME_ZAMAN_ASIMI) as yanit:
             tur = (yanit.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             bildirilen = yanit.headers.get("Content-Length")
             if bildirilen and bildirilen.isdigit() and int(bildirilen) > EN_BUYUK_INDIRME:
@@ -993,9 +1023,7 @@ def ai_eklentisini_kur(bildir) -> None:
             istek = urllib.request.Request(
                 AI_MODEL_ADRESI, headers={"User-Agent": "PosterBasim/1.0"}
             )
-            with urllib.request.urlopen(
-                istek, timeout=120, context=_ssl_baglami()
-            ) as yanit, open(gecici, "wb") as dosya:
+            with guvenli_ac(istek, 120) as yanit, open(gecici, "wb") as dosya:
                 toplam = int(yanit.headers.get("Content-Length") or 0)
                 inen = 0
                 while parca := yanit.read(1024 * 256):
