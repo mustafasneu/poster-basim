@@ -211,8 +211,26 @@ yine de yerinde kalır.</p>
 <b>Klasör</b> kutusundan dosyanın bulunduğu klasöre gidin, sonra dosyaya çift tıklayın
 (ya da bir kez tıklayıp sağdaki <b>Aç</b> düğmesine basın). Vazgeçmek için
 <b>İptal</b>.</p>
-<p>Desteklenen biçimler: <code>.jpg .jpeg .png .bmp .webp .tif .tiff</code> ve <code>.pdf</code>.
-Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir.</p>
+<p>Telefonla çekilmiş fotoğrafların yön bilgisi otomatik düzeltilir. Desteklenen dosyalar:</p>
+<table>
+  <tr><th>Tür</th><th>Uzantılar</th><th>Not</th></tr>
+  <tr><td>Resim</td><td><code>.jpg .jpeg .png .bmp .webp .tif .tiff .gif</code></td>
+      <td>En yaygın kullanım</td></tr>
+  <tr><td>Photoshop</td><td><code>.psd</code></td>
+      <td>Kaydedilmiş birleşik görüntü kullanılır (katmanlara girilmez)</td></tr>
+  <tr><td>PDF / Illustrator</td><td><code>.pdf .ai</code></td>
+      <td>300 DPI taranır; en kaliteli kaynak</td></tr>
+  <tr><td>iPhone fotoğrafı</td><td><code>.heic .heif</code></td>
+      <td>Doğrudan açılır, dönüştürmeye gerek yok</td></tr>
+  <tr><td>Ham fotoğraf (RAW)</td>
+      <td><code>.cr2 .cr3 .nef .arw .dng .orf .rw2 .raf .srw .pef</code></td>
+      <td>Fotoğraf makinesinin beyaz ayarıyla işlenir, birkaç saniye sürer</td></tr>
+</table>
+<div class="kutu kutu-bilgi">
+  <b>SVG, EPS ve CorelDRAW (.cdr) dosyaları:</b> Bunlar için tasarım programınızdan
+  <b>PDF olarak dışa aktarın</b> (Corel'de <i>Dosya → Dışa Aktar → PDF</i>). Tek adımdır,
+  kalite kaybı olmaz ve PDF zaten en iyi sonucu veren kaynaktır.
+</div>
 
 <h3>PDF afiş / tasarım kullanma</h3>
 <p>Afiş ve poster tasarımları çoğu zaman JPEG değil <b>PDF</b> olarak gelir. Programa

@@ -13,6 +13,9 @@ yazmaz.
 
 - **Sünme yok** — görsel, sayfa matrisinin oranına doldurularak değil, oranı korunarak
   yerleştirilir; artan alan beyaz bırakılır. Daireler basık, yüzler uzamış çıkmaz.
+- **Geniş dosya desteği** — JPG/PNG/BMP/WEBP/TIFF, **PSD** (Photoshop), **HEIC** (iPhone),
+  **RAW** (CR2/NEF/ARW/DNG…), **PDF** ve **AI** (Illustrator). CMYK ve 16-bit kaynaklar
+  baskıya uygun RGB'ye çevrilir.
 - **PDF afiş desteği** — tasarım PDF olarak geldiyse doğrudan verin. PDF vektörel olduğu
   için sayfa 300 DPI'da taranır; ekran görüntüsü almaktan çok daha kaliteli çıkar. Çok
   sayfalı PDF'te hangi sayfanın poster olacağı sorulur.
@@ -62,9 +65,9 @@ açılışlar anındadır.
 
 ## Kullanım
 
-1. **Bilgisayardan Dosya Seç** ile görseli ya da PDF'i yükleyin
-   (`.jpg .jpeg .png .bmp .webp .tif .tiff .pdf`), veya **İnternetten Link ile Al** ile
-   web adresini yapıştırın.
+1. **Bilgisayardan Dosya Seç** ile görseli, tasarımı ya da PDF'i yükleyin, veya
+   **İnternetten Link ile Al** ile web adresini yapıştırın. SVG/EPS/CDR dosyalarını
+   tasarım programınızdan PDF olarak dışa aktarıp verin.
 2. **Sütun** ve **satır** sayısını girerek poster ölçüsünü belirleyin (örn. 4 × 2 = 8 A4).
 3. Gerekirse **çakışma payını** ayarlayın — kesip yapıştıracaksanız 20–30 iyi gelir.
 4. Sürgülerle keskinlik / kontrast / renk ayarını yapın.
@@ -98,7 +101,9 @@ orada anlatılıyor.
 ## Teknik
 
 Python 3.10+, Tkinter (arayüz), [Pillow](https://python-pillow.org/) (görüntü işleme),
-[ReportLab](https://www.reportlab.com/) (PDF). Bağımlılıklar programın yanındaki `.venv`
+[ReportLab](https://www.reportlab.com/) (PDF üretimi), [pypdfium2](https://github.com/pypdfium2-team/pypdfium2)
+(PDF/AI okuma), pillow-heif (HEIC), rawpy (RAW). Son üçü isteğe bağlıdır: kurulamazlarsa
+program yine açılır, yalnızca ilgili biçim devre dışı kalır. Bağımlılıklar programın yanındaki `.venv`
 klasörüne kurulur; sistem Python'ı değiştirilmez.
 
 ## Lisans

@@ -19,10 +19,18 @@ import subprocess
 import sys
 
 # ---------------------------------------------------------------- kendi kendine kurulum
-GEREKLI_PAKETLER = ("pillow>=10", "reportlab>=4", "pypdfium2>=4")
-# PDF okuma bileşeni programın açılması için şart değildir; yoksa yalnızca PDF
-# kaynak kullanılamaz, o yüzden başlangıç denetiminde aranmaz (bkz. _calisir_mi).
+GEREKLI_PAKETLER = (
+    "pillow>=10",
+    "reportlab>=4",
+    "pypdfium2>=4",
+    "pillow-heif>=0.16",
+    "rawpy>=0.21",
+)
+# Bu üç bileşen programın açılması için şart değildir; kurulamazlarsa yalnızca ilgili
+# biçim devre dışı kalır, program çalışmaya devam eder (bkz. _calisir_mi).
 PDF_PAKETI = "pypdfium2>=4"
+HEIC_PAKETI = "pillow-heif>=0.16"
+RAW_PAKETI = "rawpy>=0.21"
 PROJE_DIZINI = os.path.dirname(os.path.abspath(__file__))
 VENV_DIZINI = os.path.join(PROJE_DIZINI, ".venv")
 YENIDEN_BASLATMA_ISARETI = "POSTER_BOLME_KURULUM"
@@ -387,6 +395,19 @@ def tk_pencerelerini_turkcelestir(root: tk.Misc):
         pass
 
 
+# --------------------------------------------------------------- desteklenen biçimler
+# Illustrator'ın modern .ai dosyaları aslında PDF'tir; PDF motoruyla açılırlar.
+PDF_UZANTILARI = (".pdf", ".ai")
+HEIC_UZANTILARI = (".heic", ".heif")
+RAW_UZANTILARI = (
+    ".cr2", ".cr3", ".nef", ".arw", ".dng", ".orf", ".rw2", ".raf", ".srw", ".pef",
+)
+# Pillow'un kendi okuyucularıyla açılanlar (PSD dahil: birleştirilmiş görüntüyü verir).
+PILLOW_UZANTILARI = (
+    ".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff", ".psd", ".gif", ".ppm",
+)
+TUM_UZANTILAR = PILLOW_UZANTILARI + PDF_UZANTILARI + HEIC_UZANTILARI + RAW_UZANTILARI
+
 PDF_DPI = 300  # afiş tasarımları vektörel olduğu için baskı çözünürlüğünde taranır
 PDF_EN_BUYUK_KENAR = 12000  # devasa sayfalarda bellek taşmasın diye üst sınır
 
@@ -441,6 +462,79 @@ def pdf_sayfasini_goruntuye_cevir(yol: str, sayfa_no: int = 1) -> Image.Image:
         return goruntu.convert("RGB")
     finally:
         belge.close()
+
+
+def rgb_yap(img: Image.Image) -> Image.Image:
+    """Baskıya uygun RGB'ye çevirir (CMYK, 16-bit, gri ve paletli kaynaklar dahil)."""
+    if img.mode == "RGB":
+        return img
+    if img.mode in ("RGBA", "LA", "PA") or (img.mode == "P" and "transparency" in img.info):
+        img = img.convert("RGBA")
+        zemin = Image.new("RGB", img.size, (255, 255, 255))
+        zemin.paste(img, mask=img.split()[-1])
+        return zemin
+    if img.mode in ("I;16", "I;16B", "I", "F"):  # 16/32-bit tarama çıktıları
+        return img.point(lambda d: d * (1 / 256)).convert("L").convert("RGB")
+    return img.convert("RGB")  # CMYK, L, P ve diğerleri
+
+
+def heic_goruntusu_ac(yol: str) -> Image.Image:
+    """iPhone HEIC/HEIF dosyasını açar."""
+    try:
+        import pillow_heif  # noqa: PLC0415 — yalnızca HEIC açılırken gerekiyor
+    except ImportError as hata:
+        raise ValueError(
+            "iPhone (HEIC) dosyaları için gereken bileşen kurulu değil.\n\n"
+            "Ya şu komutu bir kez çalıştırın:\n"
+            f"{sys.executable} -m pip install {HEIC_PAKETI}\n\n"
+            "ya da fotoğrafı iPhone'dan “En Uyumlu / JPEG” olarak aktarın."
+        ) from hata
+
+    pillow_heif.register_heif_opener()
+    try:
+        img = Image.open(yol)
+        img.load()
+    except (OSError, ValueError) as hata:
+        raise ValueError(f"HEIC dosyası açılamadı:\n{hata}") from hata
+    return img
+
+
+def raw_goruntusu_ac(yol: str) -> Image.Image:
+    """Fotoğraf makinesi ham (RAW) dosyasını açar ve normal görüntüye çevirir."""
+    try:
+        import rawpy  # noqa: PLC0415 — yalnızca RAW açılırken gerekiyor
+    except ImportError as hata:
+        raise ValueError(
+            "Ham (RAW) fotoğraf dosyaları için gereken bileşen kurulu değil.\n\n"
+            "Ya şu komutu bir kez çalıştırın:\n"
+            f"{sys.executable} -m pip install {RAW_PAKETI}\n\n"
+            "ya da fotoğrafı JPEG/TIFF olarak dışa aktarın."
+        ) from hata
+
+    try:
+        with rawpy.imread(yol) as ham:
+            # use_camera_wb: fotoğraf makinesinin beyaz ayarı korunur, renkler doğru çıkar.
+            dizi = ham.postprocess(use_camera_wb=True, output_bps=8)
+    except Exception as hata:  # rawpy kendi hata tiplerini kullanır
+        raise ValueError(f"RAW dosyası açılamadı:\n{hata}") from hata
+    return Image.fromarray(dizi)
+
+
+def kaynak_goruntusu_ac(yol: str) -> Image.Image:
+    """Desteklenen her biçimi açıp baskıya hazır RGB görüntü döndürür (PDF hariç)."""
+    uzanti = os.path.splitext(yol)[1].lower()
+    if uzanti in HEIC_UZANTILARI:
+        img = heic_goruntusu_ac(yol)
+    elif uzanti in RAW_UZANTILARI:
+        img = raw_goruntusu_ac(yol)
+    else:
+        try:
+            img = Image.open(yol)
+            img.load()
+        except (OSError, ValueError) as hata:
+            raise ValueError(f"Dosya açılamadı:\n{hata}") from hata
+    img = ImageOps.exif_transpose(img)  # telefon fotoğraflarının yönünü düzeltir
+    return rgb_yap(img)
 
 
 EN_BUYUK_INDIRME = 60 * 1024 * 1024  # 60 MB; poster kaynağı için fazlasıyla yeterli
@@ -509,8 +603,12 @@ def linkten_resim_indir(baglanti: str, hedef_dizin: str) -> str:
     # İçeriği gerçekten açarak sınıyoruz; uzantıya ya da sunucunun bildirdiğine güvenmiyoruz.
     from io import BytesIO
 
+    adres_uzantisi = os.path.splitext(urllib.parse.urlparse(baglanti).path)[1].lower()
     if veri[:5] == b"%PDF-":
         bicim = "pdf"
+    elif adres_uzantisi in HEIC_UZANTILARI + RAW_UZANTILARI:
+        # Bu biçimleri Pillow tanımaz; dosya kaydedilip kendi okuyucusuna bırakılır.
+        bicim = adres_uzantisi.lstrip(".")
     else:
         try:
             with Image.open(BytesIO(veri)) as deneme:
@@ -621,15 +719,8 @@ def masaustu_yolu() -> str:
 
 
 def jpeg_uyumlu(img: Image.Image) -> Image.Image:
-    """Alfa kanallı / paletli resimleri beyaz zemine düzleştirip RGB'ye çevirir."""
-    if img.mode == "RGB":
-        return img
-    if img.mode in ("RGBA", "LA", "PA") or (img.mode == "P" and "transparency" in img.info):
-        img = img.convert("RGBA")
-        zemin = Image.new("RGB", img.size, (255, 255, 255))
-        zemin.paste(img, mask=img.split()[-1])
-        return zemin
-    return img.convert("RGB")
+    """Alfa kanallı / paletli / CMYK resimleri beyaz zemine düzleştirip RGB'ye çevirir."""
+    return rgb_yap(img)
 
 
 class SunmesizBaskiApp:
@@ -814,14 +905,19 @@ class SunmesizBaskiApp:
 
     # ------------------------------------------------------------------ eylemler
     def resim_sec(self):
+        def kalip(uzantilar) -> str:
+            return " ".join(f"*{u}" for u in uzantilar)
+
         dosya_tipleri = [
-            ("Resim ve PDF", "*.jpg *.jpeg *.png *.bmp *.webp *.tif *.tiff *.pdf"),
-            ("Resim Dosyaları", "*.jpg *.jpeg *.png *.bmp *.webp *.tif *.tiff"),
-            ("PDF Dosyaları", "*.pdf"),
+            ("Desteklenen tüm dosyalar", kalip(TUM_UZANTILAR)),
+            ("Resim dosyaları", kalip(PILLOW_UZANTILARI)),
+            ("PDF ve Illustrator", kalip(PDF_UZANTILARI)),
+            ("iPhone fotoğrafları (HEIC)", kalip(HEIC_UZANTILARI)),
+            ("Ham fotoğraf (RAW)", kalip(RAW_UZANTILARI)),
             ("Tüm Dosyalar", "*.*"),
         ]
         secilen_yol = filedialog.askopenfilename(
-            title="Bir Resim ya da PDF Seçin", filetypes=dosya_tipleri
+            title="Bir Resim, PDF ya da Tasarım Dosyası Seçin", filetypes=dosya_tipleri
         )
         if not secilen_yol:
             return
@@ -1001,17 +1097,21 @@ class SunmesizBaskiApp:
         return sonuc["adres"] or None
 
     def resmi_yukle(self, secilen_yol: str):
-        if secilen_yol.lower().endswith(".pdf"):
+        uzanti = os.path.splitext(secilen_yol)[1].lower()
+        if uzanti in PDF_UZANTILARI:
             img = self._pdf_yukle(secilen_yol)
             if img is None:
                 return
         else:
+            onceki = self.durum_lbl["text"]
+            if uzanti in RAW_UZANTILARI:  # ham dosyanın işlenmesi birkaç saniye sürer
+                self.durum_lbl.config(text="Ham (RAW) dosya işleniyor...")
+                self.root.update_idletasks()
             try:
-                img = Image.open(secilen_yol)
-                img.load()
-                img = ImageOps.exif_transpose(img)  # telefon fotoğraflarının yönünü düzeltir
-            except (OSError, ValueError) as hata:
-                messagebox.showerror("Hata", f"Resim açılamadı:\n{hata}")
+                img = kaynak_goruntusu_ac(secilen_yol)
+            except (ValueError, MemoryError) as hata:
+                self.durum_lbl.config(text=onceki)
+                messagebox.showerror("Hata", str(hata))
                 return
 
         self.resim_yolu = secilen_yol
