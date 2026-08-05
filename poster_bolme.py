@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sünmesiz & oran korumalı A4 poster bölücü (Tkinter arayüz).
+"""Poster Basım — sünmesiz & oran korumalı A4 poster üretici (Tkinter arayüz).
 
 Bir resmi seçip N sütun x M satır A4 sayfaya bölerek yazdırmaya hazır tek bir
 PDF üretir. Parçalar ayrıca JPEG olarak da kaydedilir.
