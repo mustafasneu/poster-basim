@@ -89,7 +89,10 @@ ihtiyaç duyar. Bunu bir kez kurarsınız, sonra unutursunuz.</p>
       <b>“Add python.exe to PATH”</b> yazan kutucuğu <b>işaretleyin</b>, sonra
       <b>“Install Now”</b>a basın. Bitince <b>Close</b> deyin. (~2 dakika)</td></tr>
   <tr><td><b>macOS</b></td>
-      <td>Kuruludur. Hiçbir şey yapmayın, 1.2'ye geçin.</td></tr>
+      <td>Kuruludur, şimdilik hiçbir şey yapmayın. Programı ilk açtığınızda Apple
+      <b>“command line developer tools”</b> kurmak isterse — bu Apple'ın kendi
+      penceresidir — <b>Install</b> deyip bitmesini bekleyin (~2 dakika), sonra
+      programı yeniden açın.</td></tr>
   <tr><td><b>Linux</b></td>
       <td>Kuruludur. Hiçbir şey yapmayın, 1.2'ye geçin.</td></tr>
 </table>
@@ -119,6 +122,13 @@ https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip</a></p>
 <b>Masaüstü</b> ya da <b>Belgeler</b> gibi kalıcı bir yere taşıyın — program hep oradan
 çalışacak.</p>
 
+<div class="kutu kutu-uyari">
+  <b>Bu adımı atlamayın.</b> Windows, sıkıştırılmış dosyanın içini normal bir klasör gibi
+  gösterir; oradaki dosyalara çift tıklarsanız program <u>çalışmaz</u> ya da açılıp hemen
+  kapanır. Önce <b>“Tümünü ayıkla”</b> deyip gerçek klasörü oluşturduğunuzdan emin olun —
+  gerçek klasörün yol satırında artık <code>.zip</code> yazmaz.
+</div>
+
 <h3>1.4. Programı açın</h3>
 <p>Klasörün içine girin ve <b>kendi bilgisayarınıza ait olan</b> dosyaya çift tıklayın:</p>
 <table>
@@ -128,9 +138,12 @@ https://github.com/mustafasneu/poster-basim/archive/refs/heads/main.zip</a></p>
       <b>Ek bilgi</b> → <b>Yine de çalıştır</b>.</td></tr>
   <tr><td><b>macOS</b></td><td><code>Poster Basim.command</code></td>
       <td>İlk açışta <b>sağ tıklayıp “Aç”</b> deyin, çıkan uyarıda yine <b>“Aç”</b>a
-      basın. Bir kez yeterli.</td></tr>
+      basın; bir kez yeterli. Arkada siyah bir <b>Terminal</b> penceresi açılır, bu
+      normaldir — kapatmayın, program penceresi onun üzerinde belirir.</td></tr>
   <tr><td><b>Linux</b></td><td><code>calistir.sh</code></td>
-      <td>Soru çıkarsa <b>“Çalıştır”</b> deyin.</td></tr>
+      <td>Çıkan soruda <b>“Çalıştır”</b> deyin. Çift tık dosyayı metin düzenleyicide
+      açıyorsa, klasörde sağ tık → <b>“Terminalde aç”</b> deyip
+      <code>./calistir.sh</code> yazın.</td></tr>
 </table>
 
 <div class="kutu kutu-bilgi">
@@ -166,13 +179,43 @@ simgeye çift tıklayarak açın. Kısayolu istemezseniz masaüstünden silmeniz
   <tr><td><b>macOS:</b> “geliştirici doğrulanamadı” uyarısı</td>
       <td>Dosyaya <b>sağ tıklayıp “Aç”</b> deyin ve uyarıda yine <b>“Aç”</b>a basın.
       Program imzalı bir mağaza uygulaması olmadığı için macOS bir kez sorar.</td></tr>
+  <tr><td><b>macOS:</b> sağ tık → Aç yaptım, yine de açılmıyor</td>
+      <td>Yeni macOS sürümlerinde onay ayrı bir yerden verilir:
+      <b>Sistem Ayarları</b> → <b>Gizlilik ve Güvenlik</b> → sayfayı aşağı kaydırın →
+      <code>Poster Basim.command</code> için <b>“Yine de Aç”</b> düğmesine basın.</td></tr>
+  <tr><td><b>macOS:</b> Apple “command line developer tools” kurulmasını istiyor</td>
+      <td>Apple'ın kendi penceresidir; <b>Install</b> deyin, bitince programı yeniden
+      açın. Kurmak istemezseniz <a href="https://www.python.org/downloads/">python.org</a>
+      üzerinden Python kurmak da aynı işi görür.</td></tr>
+  <tr><td><b>macOS:</b> “tkinter bulunamadı” uyarısı</td>
+      <td>Terminali açıp bir kez şunu çalıştırın:
+      <code>brew install python-tk</code> (Homebrew yoksa python.org kurulumu bu parçayı
+      zaten içerir).</td></tr>
   <tr><td><b>Linux:</b> “tkinter bulunamadı” uyarısı</td>
       <td>Terminali açıp bir kez şunu çalıştırın:
       <code>sudo apt install -y python3-tk</code></td></tr>
+  <tr><td><b>Windows:</b> pencere bir anda açılıp kapanıyor</td>
+      <td>Büyük ihtimalle dosyalar hâlâ sıkıştırılmış klasörün içinde. 1.3 adımına dönüp
+      <b>“Tümünü ayıkla”</b> yapın, sonra çıkan gerçek klasördeki dosyaya çift tıklayın.</td></tr>
+  <tr><td><b>Linux:</b> çift tıklayınca dosya metin olarak açılıyor</td>
+      <td>Klasörde boş bir yere sağ tıklayıp <b>“Terminalde aç”</b> deyin, sonra
+      <code>./calistir.sh</code> yazıp Enter'a basın.</td></tr>
+  <tr><td>“Bileşenler kurulamadı” yazıyor</td>
+      <td>İlk açılışta internet gerekir. Bağlantıyı kontrol edip programı yeniden açın.
+      Kurum ağındaysanız güvenlik duvarı engelliyor olabilir; başka bir ağda deneyin.</td></tr>
+  <tr><td>Masaüstündeki simge artık açmıyor</td>
+      <td>Program klasörü taşınmış ya da silinmiştir. Klasörü bulup 1.5 adımındaki kısayol
+      dosyasına bir kez daha çift tıklayın.</td></tr>
   <tr><td>Hiçbir şey olmuyor gibi</td>
-      <td>İlk açılış yarım dakika sürer. İnternet bağlantınızın açık olduğundan emin olun
-      ve bekleyin.</td></tr>
+      <td>İlk açılış yarım dakika sürer ve bu sırada ekranda bir şey görünmeyebilir.
+      Yarım dakika bekleyin; sonraki açılışlar anında olur.</td></tr>
 </table>
+
+<div class="kutu kutu-ok">
+  <b>Yönetici (admin) yetkisi gerekmez.</b> Program her şeyi kendi klasörüne yazar;
+  kurum bilgisayarlarında da tek başınıza kurabilirsiniz. Tek istisna, Windows'ta
+  Python'un ilk kurulumudur — orada işletim sistemi izin isteyebilir.
+</div>
 
 <h2 id="genel">2. Program açıldığında</h2>
 <p>Pencere iki bölümden oluşur: solda <b>ayar paneli</b>, sağda <b>önizleme alanı</b>.
