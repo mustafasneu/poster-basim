@@ -62,7 +62,7 @@ açılışlar anındadır.
 3. Gerekirse **çakışma payını** ayarlayın — kesip yapıştıracaksanız 20–30 iyi gelir.
 4. Sürgülerle keskinlik / kontrast / renk ayarını yapın.
 5. **Oranı Koru ve Hazır PDF Üret** deyin. Çıktı, masaüstünüzdeki
-   `Bolu_Parcalanmis_Resimler` klasörüne tarih damgalı bir alt klasör olarak düşer:
+   `Poster_Parcalari` klasörüne tarih damgalı bir alt klasör olarak düşer:
    yazdırılacak PDF ve her parçanın JPEG hali.
 
 > [!IMPORTANT]

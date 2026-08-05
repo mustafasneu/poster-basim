@@ -672,7 +672,7 @@ class SunmesizBaskiApp:
 
         zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
         klasor_adi = f"Poster_OranKorumali_{zaman_damgasi}"
-        cikis_klasoru = os.path.join(masaustu_yolu(), "Bolu_Parcalanmis_Resimler", klasor_adi)
+        cikis_klasoru = os.path.join(masaustu_yolu(), "Poster_Parcalari", klasor_adi)
         os.makedirs(cikis_klasoru, exist_ok=True)
         pdf_yolu = os.path.join(cikis_klasoru, f"Oran_Korumali_Baski_{zaman_damgasi}.pdf")
 

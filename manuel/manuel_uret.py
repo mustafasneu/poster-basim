@@ -237,7 +237,7 @@ etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
 <p>Her üretim, tarih-saat damgalı ayrı bir klasöre yazılır; eski çıktıların üzerine
 <b>asla</b> yazılmaz.</p>
 <pre><code>Masaüstü/
-└── Bolu_Parcalanmis_Resimler/
+└── Poster_Parcalari/
     └── Poster_OranKorumali_20260805_100535/
         ├── Oran_Korumali_Baski_20260805_100535.pdf   ← yazdırılacak dosya
         ├── parca_satir1_sutun1.jpg                   ← tek tek parçalar
@@ -351,7 +351,7 @@ yeniden birleştirilmiş halidir (daireler yuvarlak, çizgiler sürekli):</p>
   <strong>Programı kaldırmak:</strong> <code>poster-basim-main</code> klasörünü ve
   masaüstündeki “Poster Basım” simgesini silin. Bu kadar — program bilgisayarınızın
   başka hiçbir yerine dosya yazmaz, kayıt defterine dokunmaz. Ürettiğiniz posterler
-  masaüstündeki <code>Bolu_Parcalanmis_Resimler</code> klasöründe kalır; onları da
+  masaüstündeki <code>Poster_Parcalari</code> klasöründe kalır; onları da
   istemiyorsanız ayrıca silin.
 </div>
 <div class="kutu kutu-bilgi">
