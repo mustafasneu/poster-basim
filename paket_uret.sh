@@ -20,6 +20,7 @@ pyinstaller --noconfirm --clean --onefile --windowed \
     --collect-all PIL \
     --hidden-import PIL._tkinter_finder \
     --collect-all pypdfium2 \
+    --collect-all tkinterdnd2 \
     --collect-all rawpy \
     --collect-all pillow_heif \
     --collect-all onnxruntime \

@@ -45,6 +45,26 @@ def cek(root: tk.Misc, ad: str, tum_ekran: bool = False):
     print("çekildi:", yol)
 
 
+def pano_kirp(root: tk.Misc, widget: tk.Misc, ad: str, pay: int = 0):
+    """Pencereyi çekip yalnızca verilen widget'ın alanını saklar.
+
+    Tek bir ayar bölümünü göstermek için tüm pencereyi basmak gerekmiyor;
+    kılavuzda bölüm yakın plandan daha okunur çıkıyor.
+    """
+    from PIL import Image
+
+    root.update()
+    yol = os.path.join(GORSEL_DIZINI, f"{ad}.png")
+    subprocess.run(["import", "-window", str(root.winfo_id()), yol], check=True)
+    with Image.open(yol) as pencere:
+        sol = max(0, widget.winfo_rootx() - root.winfo_rootx() - pay)
+        ust = max(0, widget.winfo_rooty() - root.winfo_rooty() - pay)
+        sag = min(pencere.width, sol + widget.winfo_width() + 2 * pay)
+        alt = min(pencere.height, ust + widget.winfo_height() + 2 * pay)
+        pencere.crop((sol, ust, sag, alt)).save(yol)
+    print("çekildi:", yol)
+
+
 def main():
     root = tk.Tk()
     app = SunmesizBaskiApp(root)
@@ -189,6 +209,19 @@ def main():
             app.onizlemeyi_guncelle(),
         ),
         lambda: cek(root, "05_iyilestirme"),
+        # Çıktı formatı kutuları: kılavuzda üçü de işaretli görünsün, sonra
+        # üretim varsayılan ayarlarla sürsün diye geri kapatılır.
+        lambda: (
+            app.kayipsiz_var.set(True),
+            app.tiff_var.set(True),
+            app.png_var.set(True),
+        ),
+        lambda: pano_kirp(root, app.format_cercevesi, "04d_cikti_formati"),
+        lambda: (
+            app.kayipsiz_var.set(False),
+            app.tiff_var.set(False),
+            app.png_var.set(False),
+        ),
         rapor_ekrani,
         birebir_ekrani,
         uret,

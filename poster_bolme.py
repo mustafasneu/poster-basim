@@ -25,14 +25,16 @@ GEREKLI_PAKETLER = (
     "pypdfium2>=4",
     "pillow-heif>=0.16",
     "rawpy>=0.21",
+    "tkinterdnd2>=0.4",  # sürükle-bırak; yoksa yalnızca bu özellik kapanır
     "certifi",  # macOS'ta https sertifika doğrulaması için
     "truststore",  # işletim sisteminin kendi sertifika deposunu kullanır
 )
-# Bu üç bileşen programın açılması için şart değildir; kurulamazlarsa yalnızca ilgili
-# biçim devre dışı kalır, program çalışmaya devam eder (bkz. _calisir_mi).
+# Bu dört bileşen programın açılması için şart değildir; kurulamazlarsa yalnızca ilgili
+# biçim ya da özellik devre dışı kalır, program çalışmaya devam eder (bkz. _calisir_mi).
 PDF_PAKETI = "pypdfium2>=4"
 HEIC_PAKETI = "pillow-heif>=0.16"
 RAW_PAKETI = "rawpy>=0.21"
+DND_PAKETI = "tkinterdnd2>=0.4"
 PROJE_DIZINI = os.path.dirname(os.path.abspath(__file__))
 VENV_DIZINI = os.path.join(PROJE_DIZINI, ".venv")
 
@@ -61,6 +63,7 @@ YENIDEN_BASLATMA_ISARETI = "POSTER_BOLME_KURULUM"
 
 WINDOWS = os.name == "nt"
 MACOS = sys.platform == "darwin"
+LINUX = sys.platform.startswith("linux")
 
 # Windows'ta yardımcı komutlar çalışırken siyah konsol penceresi açılmasın.
 _SESSIZ = {"creationflags": 0x08000000} if WINDOWS else {}
@@ -285,7 +288,8 @@ def _eksikleri_buraya_kur() -> bool:
     for ek in ([], ["--user"]):  # yazma izni yoksa kullanıcı klasörüne kurulur
         try:
             subprocess.run(
-                [sys.executable, "-m", "pip", "install", "--quiet", *ek, "certifi", "truststore"],
+                [sys.executable, "-m", "pip", "install", "--quiet", *ek,
+                 "certifi", "truststore", DND_PAKETI],
                 timeout=900,
                 check=False,
                 **_SESSIZ,
@@ -381,9 +385,18 @@ _bagimliliklari_hazirla()
 # ---------------------------------------------------------------------------- program
 import tkinter as tk  # noqa: E402
 from datetime import datetime  # noqa: E402
+from typing import TYPE_CHECKING  # noqa: E402
 from tkinter import filedialog, font as tkfont, messagebox, ttk  # noqa: E402
 
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageStat, ImageTk  # noqa: E402
+from PIL import (  # noqa: E402
+    Image,
+    ImageEnhance,
+    ImageFilter,
+    ImageOps,
+    ImageStat,
+    ImageTk,
+    TiffImagePlugin,
+)
 from reportlab.lib.pagesizes import A4, landscape  # noqa: E402
 from reportlab.pdfgen import canvas  # noqa: E402
 
@@ -1427,6 +1440,127 @@ def a4_piksel(dikey: bool, dpi: int = PDF_DPI) -> tuple[int, int]:
     return (kisa, uzun) if dikey else (uzun, kisa)
 
 
+# --- Çıktı formatları -------------------------------------------------------
+# PDF her zaman üretilir; aşağıdakiler onun YANINA eklenen isteğe bağlı çıktılardır.
+
+TIFF_SIKISTIRMA = "tiff_adobe_deflate"  # ZIP: kayıpsız ve matbaaların açtığı standart
+PNG_SIKISTIRMA = 6  # 9'a çıkarmak dosyayı çok az küçültür, süreyi belirgin uzatır
+# Klasik TIFF sayfa adreslerini 32 bit tutar; 4 GB aşılırsa dosya sessizce bozulur.
+# Pillow'un akış yazıcısı BigTIFF üretmediği için sınıra dayanmadan durmak gerekir.
+TIFF_BOYUT_SINIRI = 3_900_000_000
+
+if TYPE_CHECKING:  # typing.Self 3.11+; program 3.10'da da çalışabildiği için koşullu
+    from typing import Self
+
+
+# --- Sürükle-bırak ----------------------------------------------------------
+
+
+def _dnd_x11_uyumlu_mu() -> bool:
+    """Linux'ta tkdnd'nin Tk ile aynı X11 bağlantısını paylaşıp paylaşamayacağı.
+
+    tkdnd sistemin libX11'ini dinamik bağlar. Tk kendi X11 kopyasını statik olarak
+    içeriyorsa (uv / python-build-standalone yapıları böyledir) aynı süreçte iki ayrı
+    X11 istemcisi oluşur; tkdnd yüklenir yüklenmez xcb doğrulaması programı topluca
+    sonlandırır. Bu çökme Python tarafında yakalanamadığı için denemeden önce elenir:
+    Tk gerçekten sistem libX11'ini kullanıyorsa kütüphane süreç haritasında görünür.
+    """
+    if not LINUX:
+        return True  # Windows OLE2, macOS Cocoa kullanır; X11 çakışması söz konusu değil
+    try:
+        with open("/proc/self/maps", encoding="utf-8", errors="ignore") as harita:
+            return "libX11.so" in harita.read()
+    except OSError:
+        return False
+
+
+def surukle_birak_baglat(root: tk.Misc) -> bool:
+    """Pencereye tkdnd desteğini iliştirir; başarılıysa True döner.
+
+    Tk penceresi oluşturulduktan SONRA çağrılmalıdır — uyumluluk denetimi Tk'nin
+    yüklediği kütüphanelere bakar.
+    """
+    if not _dnd_x11_uyumlu_mu():
+        return False
+    try:
+        from tkinterdnd2 import TkinterDnD  # noqa: PLC0415
+
+        TkinterDnD._require(root)
+    except (ImportError, RuntimeError, tk.TclError):
+        return False
+    return True
+
+
+def sayfa_dosyasi_yaz(
+    goruntu: Image.Image, yol_koku: str, kayipsiz: bool, dpi: int = PDF_DPI
+) -> str:
+    """Sayfayı diske yazar, PDF'e gömülecek dosyanın yolunu döndürür.
+
+    Kayıpsız modda PNG yazılır; reportlab bunu PDF'e Flate akışı olarak gömer, yani
+    PDF'te hiç JPEG artefaktı kalmaz. Düz zeminli afiş ve grafiklerde PNG çoğu zaman
+    JPEG'den küçük de çıkar; asıl bedel fotoğraf posterlerinde ödenir.
+    """
+    if kayipsiz:
+        yol = f"{yol_koku}.png"
+        goruntu.save(yol, "PNG", dpi=(dpi, dpi), compress_level=PNG_SIKISTIRMA)
+    else:
+        yol = f"{yol_koku}.jpg"
+        goruntu.save(yol, "JPEG", quality=95, subsampling=0, dpi=(dpi, dpi))
+    return yol
+
+
+class CokSayfaliTiff:
+    """Sayfaları tek bir çok sayfalı TIFF'e akıtarak yazar.
+
+    Sayfalar üretildikleri anda tek tek yazılır, hepsi bellekte biriktirilmez.
+    Kaynak olarak diskteki karo dosyası değil bellekteki sayfa kullanılır; böylece
+    'kayıpsız' kutusu kapalı olsa bile TIFF, PDF'in JPEG karolarını değil orijinal
+    pikselleri taşır.
+    """
+
+    def __init__(self, yol: str, dpi: int = PDF_DPI, etkin: bool = True):
+        self.yol = yol
+        self.dpi = dpi
+        self.etkin = etkin  # kapalıyken ekle() sessizce hiçbir şey yapmaz
+        self.sayfa_sayisi = 0
+        self.tasti = False  # 4 GB sınırına dayanıp erken kapandı mı
+        self._yazici: TiffImagePlugin.AppendingTiffWriter | None = None
+
+    def __enter__(self) -> Self:
+        if self.etkin:
+            self._yazici = TiffImagePlugin.AppendingTiffWriter(self.yol, new=True)
+        return self
+
+    def ekle(self, goruntu: Image.Image) -> None:
+        if self._yazici is None or self.tasti:
+            return
+        goruntu.save(
+            self._yazici,
+            format="TIFF",
+            compression=TIFF_SIKISTIRMA,
+            dpi=(self.dpi, self.dpi),
+        )
+        self._yazici.newFrame()
+        self.sayfa_sayisi += 1
+        if self._yazici.f.tell() > TIFF_BOYUT_SINIRI:
+            self.tasti = True
+
+    def __exit__(self, *_hata) -> bool:
+        if self._yazici is not None:
+            self._yazici.close()
+            self._yazici = None
+        return False
+
+    def uyari(self) -> str:
+        """Kullanıcıya gösterilecek uyarı; sorun yoksa boş döner."""
+        if self.tasti:
+            return (
+                f"TIFF 4 GB sınırına dayandı; yalnızca ilk {self.sayfa_sayisi} sayfa "
+                "yazıldı. PDF ve PNG çıktıları eksiksizdir."
+            )
+        return ""
+
+
 def resimleri_sayfaya_diz(
     goruntuler: list[Image.Image],
     sutun: int,
@@ -1494,12 +1628,69 @@ class SunmesizBaskiApp:
         self.mod = tk.StringVar(value="poster")
         self.dizme_dosyalari: list[str] = []
         self.kaynak_profili: str | None = None
+        self.dnd_etkin = False  # arayüz kurulduktan sonra surukle_birak_kur belirler
 
         # Tkinter, olay içindeki hataları konsola yazıp yutar; kullanıcı hiçbir şey
         # görmez. Hepsini yakalayıp onarım hattına veriyoruz.
         self.root.report_callback_exception = self.tk_hatasini_yakala
 
         self.arayuz_tasarla()
+        self.surukle_birak_kur()
+
+    # ------------------------------------------------ sürükle-bırak
+    def surukle_birak_kur(self):
+        """Pencereyi dosya bırakmaya açar (Windows OLE2, macOS Cocoa, Linux XDND)."""
+        self.dnd_etkin = surukle_birak_baglat(self.root)
+        if self.dnd_etkin:
+            from tkinterdnd2 import DND_FILES  # noqa: PLC0415
+
+            # Pencerenin tamamı hedeftir: kullanıcı dosyayı nereye bırakacağını aramasın.
+            for hedef in (self.root, self.onizleme_label, self.sag_panel):
+                hedef.drop_target_register(DND_FILES)
+                hedef.dnd_bind("<<Drop>>", self.dosya_birakildi)
+        # Karşılama metni tek yerden üretilsin; sürükleme yazısı duruma göre eklenir.
+        self.bekleme_metnini_tazele()
+
+    def bekleme_metnini_tazele(self):
+        """Dosya seçilmemişken önizleme alanında yazan yönlendirmeyi günceller."""
+        surukle = " ya da buraya sürükleyip bırakın" if self.dnd_etkin else ""
+        if self.mod.get() == "dizme":
+            metin = f"Resimleri seçin{surukle}..."
+            doluysa = bool(self.dizme_dosyalari)
+        else:
+            metin = f"Bir resim ya da PDF seçin{surukle}..."
+            doluysa = self.orijinal_img is not None
+        if not doluysa:
+            self.onizleme_label.config(image="", text=metin)
+
+    def dosya_birakildi(self, olay):
+        """Pencereye bırakılan dosyaları yükler."""
+        # tkdnd yolları Tcl listesi olarak verir; boşluklu adlar kaşlı ayraç içinde gelir.
+        yollar = [y for y in self.root.tk.splitlist(olay.data) if os.path.isfile(y)]
+        if not yollar:
+            messagebox.showwarning(
+                "Bırakılan öğe", "Bırakılan öğe bir dosya değil. Klasör yerine dosya bırakın."
+            )
+            return
+
+        if self.mod.get() == "dizme":
+            # Sürükleyerek eklemek biriktirir; her bırakışta liste sıfırlanmaz.
+            self._dizme_dosyalari_ekle(self.dizme_dosyalari + yollar)
+            return
+
+        if len(yollar) > 1:
+            # Poster modu tek görselle çalışır; kullanıcı çoklu bıraktıysa yönünü sorar.
+            if messagebox.askyesno(
+                "Birden fazla dosya",
+                f"{len(yollar)} dosya bıraktınız. Poster modu tek görselle çalışır.\n\n"
+                "Bunları tek bir A4 sayfaya dizmek için 'Çok resmi tek A4'e diz' moduna "
+                "geçilsin mi?\n\nHayır derseniz yalnızca ilk dosya poster olarak açılır.",
+            ):
+                self.mod.set("dizme")
+                self.modu_uygula()
+                self._dizme_dosyalari_ekle(self.dizme_dosyalari + yollar)
+                return
+        self.resmi_yukle(yollar[0])
 
     # ------------------------------------------------------------------ arayüz
     def arayuz_tasarla(self):
@@ -1552,6 +1743,51 @@ class SunmesizBaskiApp:
                 variable=self.mod,
                 command=self.modu_uygula,
             ).pack(anchor=tk.W)
+
+        # Çıktı formatı her iki modda da geçerli olduğu için mod çerçevelerinin
+        # dışında, hep görünür durumda kalır. Kılavuzun ekran görüntüsü betiği bu
+        # çerçeveyi adıyla bulup kırptığı için ayrı bir çerçevede tutulur.
+        self.format_cercevesi = ttk.Frame(ayarlar)
+        self.format_cercevesi.pack(fill=tk.X)
+        ayarlar = self.format_cercevesi
+
+        ttk.Label(
+            ayarlar, text="--- ÇIKTI FORMATI ---", font=(self.font_ailesi, 11, "bold")
+        ).pack(pady=(14, 4), anchor=tk.W)
+        ttk.Label(
+            ayarlar,
+            text="Baskıya hazır PDF her zaman üretilir. Aşağıdakiler onun yanına eklenir.",
+            wraplength=220,
+            foreground="gray",
+        ).pack(anchor=tk.W, pady=(0, 4))
+
+        self.kayipsiz_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            ayarlar,
+            text="Kayıpsız baskı (PDF karoları PNG)",
+            variable=self.kayipsiz_var,
+        ).pack(anchor=tk.W)
+        ttk.Label(
+            ayarlar,
+            text="Afiş, logo ve yazıda JPEG halkalanmasını bitirir; fotoğrafta dosyayı büyütür.",
+            wraplength=220,
+            foreground="gray",
+        ).pack(anchor=tk.W, pady=(0, 4))
+
+        self.tiff_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            ayarlar,
+            text="Ayrıca çok sayfalı TIFF üret (matbaa)",
+            variable=self.tiff_var,
+        ).pack(anchor=tk.W)
+        self.png_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            ayarlar,
+            text="Sayfaları ayrıca PNG olarak kaydet",
+            variable=self.png_var,
+        ).pack(anchor=tk.W, pady=(0, 6))
+
+        ayarlar = self.format_cercevesi.master  # sonraki bölümler yine ana panele girer
 
         # Dizme moduna ait ayarlar; mod değişince gösterilip gizlenir.
         self.dizme_cercevesi = ttk.Frame(ayarlar)
@@ -1847,11 +2083,7 @@ class SunmesizBaskiApp:
             self.dizme_cercevesi.pack(fill=tk.X)
             self.kaydet_btn.config(text="Resimleri A4 Sayfalara Diz")
             self.kaydet_btn.config(state=tk.NORMAL if self.dizme_dosyalari else tk.DISABLED)
-            self.onizleme_label.config(
-                text="Resimleri seçin; ilk sayfanın önizlemesi burada görünecek..."
-                if not self.dizme_dosyalari
-                else ""
-            )
+            self.bekleme_metnini_tazele()
             self.dizme_onizle()
         else:
             self.dizme_cercevesi.pack_forget()
@@ -1859,9 +2091,7 @@ class SunmesizBaskiApp:
             self.kaydet_btn.config(text="Oranı Koru ve Hazır PDF Üret")
             self.kaydet_btn.config(state=tk.NORMAL if self.orijinal_img else tk.DISABLED)
             if self.orijinal_img is None:
-                self.onizleme_label.config(
-                    image="", text="Lütfen başlamak için bir resim ya da PDF seçin..."
-                )
+                self.bekleme_metnini_tazele()
             else:
                 self.onizlemeyi_guncelle()
 
@@ -2006,9 +2236,7 @@ class SunmesizBaskiApp:
         self.dizme_lbl.config(text="Henüz resim seçilmedi...", foreground="gray")
         self.dizme_bilgi.config(text="")
         self.kaydet_btn.config(state=tk.DISABLED)
-        self.onizleme_label.config(
-            image="", text="Resimleri seçin; ilk sayfanın önizlemesi burada görünecek..."
-        )
+        self.bekleme_metnini_tazele()
 
     def _dizme_ayarlari(self) -> tuple[int, int, bool, float, float]:
         sutun = max(1, min(int(self.dizme_sutun.get() or 1), 10))
@@ -2064,27 +2292,44 @@ class SunmesizBaskiApp:
         pdf_canvas = canvas.Canvas(pdf_yolu, pagesize=sayfa_boyutu)
         sayfa_w, sayfa_h = sayfa_boyutu
 
-        for sayfa_no in range(toplam_sayfa):
-            self.durum_lbl.config(text=f"Sayfa hazırlanıyor: {sayfa_no + 1} / {toplam_sayfa}")
-            self.root.update_idletasks()
+        kayipsiz = self.kayipsiz_var.get()
+        png_iste = self.png_var.get()
+        tiff_yolu = os.path.join(cikis_klasoru, f"Dizilmis_Sayfalar_{zaman_damgasi}.tif")
 
-            dilim = self.dizme_dosyalari[sayfa_no * sayfa_basina : (sayfa_no + 1) * sayfa_basina]
-            goruntuler = []
-            for yol in dilim:
-                try:
-                    goruntuler.append(kaynak_goruntusu_ac(yol))
-                except (ValueError, MemoryError) as hata:  # tek bozuk dosya işi durdurmasın
-                    print(f"[atlandı] {os.path.basename(yol)}: {hata}", flush=True)
-            if not goruntuler:
-                continue
+        with CokSayfaliTiff(tiff_yolu, etkin=self.tiff_var.get()) as tiff:
+            for sayfa_no in range(toplam_sayfa):
+                self.durum_lbl.config(
+                    text=f"Sayfa hazırlanıyor: {sayfa_no + 1} / {toplam_sayfa}"
+                )
+                self.root.update_idletasks()
 
-            sayfa = resimleri_sayfaya_diz(goruntuler, sutun, satir, dikey, kenar, aralik)
-            jpeg_yolu = os.path.join(cikis_klasoru, f"sayfa_{sayfa_no + 1:02d}.jpg")
-            sayfa.save(jpeg_yolu, "JPEG", quality=95, subsampling=0, dpi=(PDF_DPI, PDF_DPI))
-            pdf_canvas.drawImage(jpeg_yolu, 0, 0, width=sayfa_w, height=sayfa_h)
-            pdf_canvas.showPage()
+                dilim = self.dizme_dosyalari[
+                    sayfa_no * sayfa_basina : (sayfa_no + 1) * sayfa_basina
+                ]
+                goruntuler = []
+                for yol in dilim:
+                    try:
+                        goruntuler.append(kaynak_goruntusu_ac(yol))
+                    except (ValueError, MemoryError) as hata:  # tek bozuk dosya işi durdurmasın
+                        print(f"[atlandı] {os.path.basename(yol)}: {hata}", flush=True)
+                if not goruntuler:
+                    continue
+
+                sayfa = resimleri_sayfaya_diz(goruntuler, sutun, satir, dikey, kenar, aralik)
+                s_koku = os.path.join(cikis_klasoru, f"sayfa_{sayfa_no + 1:02d}")
+                s_yolu = sayfa_dosyasi_yaz(sayfa, s_koku, kayipsiz)
+                if png_iste and not s_yolu.endswith(".png"):
+                    sayfa.save(
+                        f"{s_koku}.png", "PNG",
+                        dpi=(PDF_DPI, PDF_DPI), compress_level=PNG_SIKISTIRMA,
+                    )
+                tiff.ekle(sayfa)
+
+                pdf_canvas.drawImage(s_yolu, 0, 0, width=sayfa_w, height=sayfa_h)
+                pdf_canvas.showPage()
 
         pdf_canvas.save()
+        tiff_uyarisi = tiff.uyari()
         self.son_cikis_klasoru = cikis_klasoru
         self.klasor_btn.config(state=tk.NORMAL)
         nerede = os.path.basename(os.path.dirname(os.path.dirname(cikis_klasoru)))
@@ -2093,7 +2338,8 @@ class SunmesizBaskiApp:
         )
         messagebox.showinfo(
             "Hazır",
-            f"{len(self.dizme_dosyalari)} resim {toplam_sayfa} A4 sayfaya dizildi.\n\n"
+            f"{len(self.dizme_dosyalari)} resim {toplam_sayfa} A4 sayfaya dizildi.\n"
+            f"{self._ek_cikti_metni(tiff, tiff_uyarisi)}\n"
             f"Klasör:\n{cikis_klasoru}\n\n"
             "Yazdırırken ölçeklendirmeyi '%100 / Gerçek Boyut' seçin.",
         )
@@ -2599,6 +2845,13 @@ class SunmesizBaskiApp:
         else:
             deger = "DÜŞÜK"
 
+        karo_bicimi = (
+            "PNG/Flate (kayıpsız)"
+            if self.kayipsiz_var.get()
+            else "JPEG kalite 95, 4:4:4"
+        )
+        png_yazildi = self.png_var.get() or self.kayipsiz_var.get()
+
         satirlar = [
             "BASKI RAPORU",
             "=" * 46,
@@ -2629,6 +2882,11 @@ class SunmesizBaskiApp:
             f"miktar %{self.miktar_slider.get():.0f}, eşik {self.esik_slider.get():.0f}",
             f"  Akıllı büyütme  : {'açık' if self.buyut_var.get() else 'kapalı'}",
             f"  Kâğıt telafisi  : {self.kagit_combo.get()}",
+            "",
+            "ÇIKTI FORMATI",
+            f"  PDF karoları    : {karo_bicimi}",
+            f"  Çok sayfalı TIFF: {'var (ZIP/deflate)' if self.tiff_var.get() else 'yok'}",
+            f"  Sayfa PNG       : {'var' if png_yazildi else 'yok'}",
         ]
 
         uyarilar = []
@@ -3032,36 +3290,49 @@ class SunmesizBaskiApp:
                 f"{en_cm:.0f} x {boy_cm:.0f} cm",
             )
 
+        kayipsiz = self.kayipsiz_var.get()
+        png_iste = self.png_var.get()
+        tiff_yolu = os.path.join(cikis_klasoru, f"Oran_Korumali_Baski_{zaman_damgasi}.tif")
+
         sayac = 0
-        for i in range(satir_sayisi):
-            for j in range(sutun_sayisi):
-                sayac += 1
-                self.durum_lbl.config(text=f"Parça üretiliyor: {sayac} / {toplam}")
-                self.root.update_idletasks()
+        with CokSayfaliTiff(tiff_yolu, etkin=self.tiff_var.get()) as tiff:
+            for i in range(satir_sayisi):
+                for j in range(sutun_sayisi):
+                    sayac += 1
+                    self.durum_lbl.config(text=f"Parça üretiliyor: {sayac} / {toplam}")
+                    self.root.update_idletasks()
 
-                istenen_sol = j * parca_genislik - cakisma
-                istenen_ust = i * parca_yukseklik - cakisma
-                sol = max(0, istenen_sol)
-                ust = max(0, istenen_ust)
-                sag = min(genislik, (j + 1) * parca_genislik + cakisma)
-                alt = min(yukseklik, (i + 1) * parca_yukseklik + cakisma)
+                    istenen_sol = j * parca_genislik - cakisma
+                    istenen_ust = i * parca_yukseklik - cakisma
+                    sol = max(0, istenen_sol)
+                    ust = max(0, istenen_ust)
+                    sag = min(genislik, (j + 1) * parca_genislik + cakisma)
+                    alt = min(yukseklik, (i + 1) * parca_yukseklik + cakisma)
 
-                kirpik = img_oranti_korumali.crop((sol, ust, sag, alt))
-                parca = Image.new("RGB", (kare_genislik, kare_yukseklik), (255, 255, 255))
-                parca.paste(kirpik, (sol - istenen_sol, ust - istenen_ust))
+                    kirpik = img_oranti_korumali.crop((sol, ust, sag, alt))
+                    parca = Image.new("RGB", (kare_genislik, kare_yukseklik), (255, 255, 255))
+                    parca.paste(kirpik, (sol - istenen_sol, ust - istenen_ust))
 
-                t_yolu = os.path.join(cikis_klasoru, f"parca_satir{i + 1}_sutun{j + 1}.jpg")
-                parca.save(t_yolu, "JPEG", quality=95, subsampling=0, dpi=(300, 300))
+                    t_koku = os.path.join(cikis_klasoru, f"parca_satir{i + 1}_sutun{j + 1}")
+                    t_yolu = sayfa_dosyasi_yaz(parca, t_koku, kayipsiz)
+                    # Kayıpsız modda karo zaten PNG; ikinci bir kopya yazmanın anlamı yok.
+                    if png_iste and not t_yolu.endswith(".png"):
+                        parca.save(
+                            f"{t_koku}.png", "PNG",
+                            dpi=(PDF_DPI, PDF_DPI), compress_level=PNG_SIKISTIRMA,
+                        )
+                    tiff.ekle(parca)
 
-                pdf_canvas.drawImage(t_yolu, ciz_x, ciz_y, width=ciz_w, height=ciz_h)
-                if self.isaret_var.get():
-                    kesim_isaretleri_ciz(
-                        pdf_canvas, ciz_x, ciz_y, ciz_w, ciz_h, cakisma_pt,
-                        i, j, satir_sayisi, sutun_sayisi,
-                    )
-                pdf_canvas.showPage()
+                    pdf_canvas.drawImage(t_yolu, ciz_x, ciz_y, width=ciz_w, height=ciz_h)
+                    if self.isaret_var.get():
+                        kesim_isaretleri_ciz(
+                            pdf_canvas, ciz_x, ciz_y, ciz_w, ciz_h, cakisma_pt,
+                            i, j, satir_sayisi, sutun_sayisi,
+                        )
+                    pdf_canvas.showPage()
 
         pdf_canvas.save()
+        tiff_uyarisi = tiff.uyari()
         try:  # rapor çıktının yanında dursun; sonradan "hangi ayarla basmıştım" sorusu kalmasın
             with open(
                 os.path.join(cikis_klasoru, "baski_raporu.txt"), "w", encoding="utf-8"
@@ -3078,10 +3349,31 @@ class SunmesizBaskiApp:
         )
         messagebox.showinfo(
             "Hazır",
-            f"{toplam} sayfalık PDF oluşturuldu.\n\n"
+            f"{toplam} sayfalık PDF oluşturuldu.\n"
+            f"{self._ek_cikti_metni(tiff, tiff_uyarisi)}\n"
             f"Klasör:\n{cikis_klasoru}\n\n"
             "Yazdırırken ölçeklendirmeyi '%100 / Gerçek Boyut' seçin.",
         )
+
+    def _ek_cikti_metni(self, tiff: CokSayfaliTiff, tiff_uyarisi: str) -> str:
+        """PDF'in yanına yazılan çıktıları kullanıcıya özetler."""
+        satirlar = []
+        if self.kayipsiz_var.get():
+            satirlar.append("PDF karoları kayıpsız (PNG/Flate) gömüldü.")
+        if tiff.etkin:
+            # Montaj haritası vektörel bir PDF sayfasıdır; TIFF'e girmez. Sayfa
+            # sayıları tutmayınca kullanıcı eksik çıktı sanmasın.
+            harita_notu = (
+                " (montaj haritası yalnızca PDF'te olur)"
+                if self.mod.get() == "poster" and self.harita_var.get()
+                else ""
+            )
+            satirlar.append(f"Çok sayfalı TIFF: {tiff.sayfa_sayisi} sayfa{harita_notu}.")
+        if self.png_var.get():
+            satirlar.append("Sayfalar ayrıca PNG olarak kaydedildi.")
+        if tiff_uyarisi:
+            satirlar.append(f"UYARI: {tiff_uyarisi}")
+        return "\n".join(satirlar) + "\n" if satirlar else ""
 
 
 def main() -> int:

@@ -24,6 +24,9 @@ yazmaz.
 - **PDF afiş desteği** — tasarım PDF olarak geldiyse doğrudan verin. PDF vektörel olduğu
   için sayfa 300 DPI'da taranır; ekran görüntüsü almaktan çok daha kaliteli çıkar. Çok
   sayfalı PDF'te hangi sayfanın poster olacağı sorulur.
+- **Sürükle-bırak** — dosyayı pencerenin herhangi bir yerine bırakmanız yeterli. Poster
+  modunda tek görsel açılır; birden çok dosya bırakırsanız bunları tek A4'e dizmek isteyip
+  istemediğiniz sorulur. Dizme modunda her bırakış listeye ekler, öncekileri silmez.
 - **Link ile alma** — görsel ya da PDF internetteyse indirmenize gerek yok; adresi
   yapıştırın, program indirip yükler.
 - **Yazıcı kenar boşluğu** — yazıcıların basamadığı payı hesaba katar; poster ölçüsü ve
@@ -55,6 +58,17 @@ yazmaz.
   ekranda gördüğünüz keskinlik kâğıttakiyle aynıdır.
 - **Baskı kalitesi** — parçalar JPEG kalite 95, renk alt örneklemesi kapalı (4:4:4),
   300 DPI etiketiyle kaydedilir.
+- **Çıktı formatı seçenekleri** — baskıya hazır PDF her zaman üretilir; isteğe bağlı olarak
+  yanına şunlar eklenir:
+  - **Kayıpsız baskı** — PDF'e gömülen karolar JPEG yerine PNG (Flate) olur, yani PDF'te
+    hiç JPEG artefaktı kalmaz. Afiş, logo ve yazıda kenar halkalanmasını bitirir; düz
+    zeminli grafiklerde dosya JPEG'den küçük bile çıkar, asıl bedel fotoğrafta ödenir.
+  - **Çok sayfalı TIFF** — matbaaların raster master olarak istediği format. Kayıpsız
+    ZIP/deflate, 300 DPI etiketli, sayfa sırası PDF ile aynı. Sayfalar tek tek akıtılarak
+    yazılır, hepsi belleğe alınmaz. Montaj haritası vektörel olduğu için yalnızca PDF'te
+    bulunur. Klasik TIFF 4 GB'lık adres sınırına dayanırsa üretim durur ve uyarılırsınız.
+  - **Sayfa PNG** — her sayfa ayrıca kayıpsız PNG olarak kaydedilir. Kayıpsız baskı zaten
+    açıksa karolar PNG olduğu için ikinci kopya yazılmaz.
 
 ## Kurulum
 

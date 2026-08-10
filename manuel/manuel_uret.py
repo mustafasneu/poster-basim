@@ -32,10 +32,13 @@ def gomulu(ad: str, en_fazla_genislik: int = 1100, kalite: int = 80) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(tampon.getvalue()).decode("ascii")
 
 
-def sekil(ad: str, baslik: str, aciklama: str = "", genislik: int = 1100) -> str:
+def sekil(ad: str, baslik: str, aciklama: str = "", genislik: int = 1100, dar: bool = False) -> str:
+    # Panel kırpıkları dar olduğu için sayfa genişliğine gerilirse bulanıklaşır;
+    # "dar" bunları kendi gerçek ölçüsünde bırakır.
     alt = f"<figcaption>{baslik}{(' — ' + aciklama) if aciklama else ''}</figcaption>"
+    sinif = ' class="dar"' if dar else ""
     return (
-        f'<figure><img src="{gomulu(ad, genislik)}" alt="{baslik}" loading="lazy">{alt}</figure>'
+        f'<figure{sinif}><img src="{gomulu(ad, genislik)}" alt="{baslik}" loading="lazy">{alt}</figure>'
     )
 
 
@@ -208,6 +211,23 @@ yine de yerinde kalır.</p>
 {sekil("01_baslangic.png", "Açılış ekranı", "sol panel ayarlar, sağ panel önizleme")}
 
 <h2 id="resim">3. Adım 1 — Resim seçme</h2>
+
+<h3>En kısa yol: sürükle-bırak</h3>
+<p>Dosyayı dosya yöneticisinden (Windows'ta Dosya Gezgini, macOS'ta Finder) tutup
+<b>programın penceresine bırakın</b>. Pencerenin tamamı hedeftir; belirli bir yere
+nişan almanız gerekmez. Düğmeye basmadan dosya açılır.</p>
+<ul>
+  <li><b>Poster modunda</b> tek görsel açılır. Birden fazla dosya bıraktıysanız program
+      bunları tek bir A4 sayfaya dizmek isteyip istemediğinizi sorar; hayır derseniz
+      yalnızca ilk dosya poster olarak açılır.</li>
+  <li><b>Dizme modunda</b> her bırakış listeye <i>ekler</i>; önceki seçiminizi silmez.
+      Fotoğrafları birkaç seferde, farklı klasörlerden toplayabilirsiniz.</li>
+  <li>Aynı dosyayı iki kez bırakırsanız listede çoğalmaz.</li>
+</ul>
+<p>Sürükle-bırak, düğmeyle seçmenin yerine geçmez; hangisi kolayınıza gelirse onu
+kullanın. Aşağıdaki dosya türlerinin hepsi iki yolla da açılır.</p>
+
+<h3>Düğmeyle seçme</h3>
 <p><code>Bilgisayardan Resim Seç</code> düğmesine basın. Açılan pencerede üstteki
 <b>Klasör</b> kutusundan dosyanın bulunduğu klasöre gidin, sonra dosyaya çift tıklayın
 (ya da bir kez tıklayıp sağdaki <b>Aç</b> düğmesine basın). Vazgeçmek için
@@ -476,6 +496,44 @@ Böylece “gerçek boyut” gerçekten gerçek olur.</p>
 {sekil("12_birebir_onizleme.png", "1:1 önizleme", "üstte kalibrasyon cetveli, altta baskı DPI bilgisi", 900)}
 
 <h2 id="uretim">8. Adım 5 — PDF üretme</h2>
+
+<h3>Üretmeden önce: çıktı formatı</h3>
+<p>Sol paneldeki <b>ÇIKTI FORMATI</b> bölümü, dosyanın hangi biçimlerde kaydedileceğini
+belirler. <b>Baskıya hazır PDF her zaman üretilir</b>; bu üç kutu PDF'i kapatmaz, onun
+yanına ekleme yapar. Üçü de kapalı gelir ve çoğu iş için kapalı kalması yeterlidir.</p>
+{sekil("04d_cikti_formati.png", "Çıktı formatı seçenekleri", "üçü de isteğe bağlıdır; PDF her hâlükârda üretilir", dar=True)}
+<table>
+  <tr><th>Seçenek</th><th>Ne işe yarar</th><th>Ne zaman açın</th></tr>
+  <tr>
+    <td><b>Kayıpsız baskı</b></td>
+    <td>PDF'in içine gömülen parçalar JPEG yerine PNG olur; yani PDF'te hiç JPEG
+        bozulması kalmaz.</td>
+    <td>Afiş, logo, yazı ve keskin kenarlı grafiklerde. Bu tür görsellerde harf ve çizgi
+        kenarındaki hafif gölgelenme tamamen kalkar, üstelik dosya çoğu zaman
+        <i>küçülür</i>. Fotoğraf posterlerinde ise dosya belirgin büyür.</td>
+  </tr>
+  <tr>
+    <td><b>Çok sayfalı TIFF</b></td>
+    <td>Bütün sayfaları tek bir <code>.tif</code> dosyasında toplar. Kayıpsız, 300 DPI
+        etiketli, sayfa sırası PDF ile aynı.</td>
+    <td>Matbaaya iş verirken. Birçok matbaa PDF yerine TIFF ister; bu dosya doğrudan
+        onlara gider.</td>
+  </tr>
+  <tr>
+    <td><b>Sayfaları ayrıca PNG kaydet</b></td>
+    <td>Her sayfayı ayrı bir kayıpsız PNG dosyası olarak da yazar.</td>
+    <td>Tek bir sayfayı başka bir programda kullanacaksanız ya da yeniden
+        bastıracaksanız.</td>
+  </tr>
+</table>
+<div class="kutu">
+  <strong>Not:</strong> “Kayıpsız baskı” zaten açıksa parçalar hâlihazırda PNG olarak
+  yazılır; program ikinci bir kopya üretmez. Montaj haritası sayfası çizim olarak
+  saklandığı için yalnızca PDF'te bulunur, TIFF'e girmez — bu yüzden TIFF'in sayfa sayısı
+  PDF'inkinden bir eksik olabilir.
+</div>
+
+<h3>Üretim</h3>
 <p><code>Oranı Koru ve Hazır PDF Üret</code> düğmesine basın. Alt satırda
 “Parça üretiliyor: 3 / 6” gibi ilerleme görünür; büyük görsellerde bu birkaç saniye sürer.
 Bitince özet penceresi açılır.</p>
@@ -493,9 +551,17 @@ etkinleşir; dosya yöneticisini doğrudan o klasörde açar.</p>
         ├── Oran_Korumali_Baski_20260805_100535.pdf   ← yazdırılacak dosya
         ├── parca_satir1_sutun1.jpg                   ← tek tek parçalar
         ├── parca_satir1_sutun2.jpg
-        └── ...</code></pre>
+        ├── ...
+        └── baski_raporu.txt                          ← hangi ayarla basıldığı</code></pre>
 <p>Normalde sadece PDF'i yazdırmanız yeterlidir. JPEG parçalar, tek bir sayfayı yeniden
 bastırmak veya başka bir programda kullanmak isterseniz durur.</p>
+<p>Çıktı formatı kutularını açtıysanız (bkz. <a href="#uretim">bölüm 8</a>) aynı klasöre
+şunlar da yazılır:</p>
+<pre><code>        ├── Oran_Korumali_Baski_20260805_100535.tif   ← matbaa için
+        ├── parca_satir1_sutun1.png                   ← kayıpsız sayfalar
+        └── parca_satir1_sutun2.png</code></pre>
+<p>“Kayıpsız baskı” açıkken parçalar <code>.jpg</code> yerine doğrudan <code>.png</code>
+olarak yazılır; yani klasörde JPEG bulunmaz.</p>
 {sekil("09_a4_sayfa_ornegi.png", "PDF'in ilk sayfası", "her sayfa tek bir parçayı taşır", 900)}
 
 <h2 id="yazdirma">10. Yazdırma ayarları (en kritik adım)</h2>
@@ -619,7 +685,12 @@ düşer: her sayfanın JPEG hali ve hepsini içeren tek bir PDF. Sayfalar 300 DP
       tamamlanır; böylece bütün parçalar aynı piksel boyutunda üretilir ve tüm sayfalar
       birebir aynı ölçekle basılır.</li>
   <li><b>Kalite:</b> Parçalar JPEG kalite 95, renk alt örneklemesi kapalı (4:4:4),
-      300 DPI etiketiyle kaydedilir.</li>
+      300 DPI etiketiyle kaydedilir. “Kayıpsız baskı” açıkken bunun yerine PNG (Flate)
+      kullanılır ve PDF hiç JPEG akışı taşımaz.</li>
+  <li><b>TIFF çıktısı:</b> Kayıpsız ZIP/deflate sıkıştırma, 300 DPI etiketi. Sayfalar
+      üretildikleri anda tek tek dosyaya akıtılır, hepsi birden belleğe alınmaz. Klasik
+      TIFF sayfa adreslerini 32 bitte tuttuğu için 4 GB'lık bir sınır vardır; iş bu sınıra
+      dayanırsa TIFF orada durdurulur ve size bildirilir — bozuk dosya üretilmez.</li>
   <li><b>Kullanılan kütüphaneler:</b> Pillow (görüntü işleme), ReportLab (PDF), Tkinter (arayüz).</li>
   <li><b>Çalıştığı sistemler:</b> Windows 10/11, Linux ve macOS. Aynı dosyalar üç sistemde
       de çalışır; masaüstü kısayolu <code>kurulum.py</code> ile her sistemde oluşturulur.</li>
@@ -720,6 +791,7 @@ SAYFA = f"""<!DOCTYPE html>
     width: 100%; height: auto; border: 1px solid var(--kenar);
     border-radius: 8px; display: block;
   }}
+  figure.dar img {{ width: auto; max-width: 100%; }}
   figcaption {{ color: var(--soluk); font-size: .9rem; margin-top: 8px; }}
   table {{ width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .96rem; }}
   th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--kenar);
