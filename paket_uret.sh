@@ -33,8 +33,12 @@ case "${RUNNER_OS:-$(uname -s)}" in
         mv "dist/Poster Basim.exe" "dist/Poster-Basim-Windows.exe"
         ;;
     macOS | Darwin)
-        # .app bir klasördür; yapı bozulmasın diye zip'lenir.
-        ( cd dist && zip -qry "Poster-Basim-macOS.zip" "Poster Basim.app" && rm -rf "Poster Basim.app" )
+        # PyInstaller --windowed macOS'ta iki çıktı bırakır: .app paketi ve
+        # yanında çıplak unix çalıştırılabiliri. Kullanıcıya .app lazım;
+        # çıplak dosya kalırsa Linux ikilisiyle aynı ada düşüp release'te
+        # onun üstüne yazıyor. .app bir klasör olduğu için zip'lenir.
+        ( cd dist && zip -qry "Poster-Basim-macOS.zip" "Poster Basim.app" \
+            && rm -rf "Poster Basim.app" && rm -f "Poster Basim" )
         ;;
     *)
         mv "dist/Poster Basim" "dist/Poster-Basim-Linux"
