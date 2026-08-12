@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mustafasneu.github.io/poster-basim/sitemap.xml

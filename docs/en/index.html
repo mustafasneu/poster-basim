@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poster Basım — Split an image into A4 pages and print it as a poster</title>
+<meta name="description" content="Free desktop app that splits an image or PDF across A4 pages without distorting it and exports a print-ready PDF. Works offline on Windows, macOS and Linux — your file never leaves your computer.">
+<link rel="canonical" href="https://mustafasneu.github.io/poster-basim/en/">
+<link rel="alternate" hreflang="tr" href="https://mustafasneu.github.io/poster-basim/">
+<link rel="alternate" hreflang="en" href="https://mustafasneu.github.io/poster-basim/en/">
+<link rel="alternate" hreflang="x-default" href="https://mustafasneu.github.io/poster-basim/">
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Poster Basım — Split an image into A4 pages and print it as a poster">
+<meta property="og:description" content="Splits an image across A4 sheets without stretching it and exports a print-ready PDF. Free, offline, no upload.">
+<meta property="og:url" content="https://mustafasneu.github.io/poster-basim/en/">
+<meta property="og:image" content="https://mustafasneu.github.io/poster-basim/img/onizleme-karti.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="../img/simge.png" sizes="any">
+<link rel="apple-touch-icon" href="../img/simge.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap">
+<link rel="stylesheet" href="../style.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Poster Basım",
+  "applicationCategory": "DesignApplication",
+  "operatingSystem": "Windows, macOS, Linux",
+  "description": "Desktop app that splits an image or PDF across A4 sheets without distortion and exports a print-ready PDF. It also tiles many images onto a single A4 sheet.",
+  "url": "https://mustafasneu.github.io/poster-basim/en/",
+  "downloadUrl": "https://github.com/mustafasneu/poster-basim/releases/latest",
+  "softwareVersion": "1.2",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"How many A4 pages can I split an image across?","acceptedAnswer":{"@type":"Answer","text":"You choose the number of columns and rows — 4 columns by 2 rows makes eight A4 sheets. The app calculates the finished poster size and the printing resolution for that grid, and warns you before export if the resolution is too low."}},
+    {"@type":"Question","name":"Is it an offline alternative to PosteRazor and Rasterbator?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is a desktop application for Windows, macOS and Linux. Splitting, scaling and PDF export all happen on your machine, so nothing is uploaded to a server."}},
+    {"@type":"Question","name":"Do I need Python installed?","acceptedAnswer":{"@type":"Answer","text":"No, if you download the packaged build from this page — it is a single file and runs on double click. Running from source requires Python 3.10 or newer."}},
+    {"@type":"Question","name":"Which file formats can I open?","acceptedAnswer":{"@type":"Answer","text":"JPG, PNG, BMP, WEBP, TIFF, PSD, HEIC, RAW files such as CR2, NEF, ARW and DNG, plus PDF and AI. CMYK and 16-bit sources are converted to print-ready RGB."}},
+    {"@type":"Question","name":"What should I watch out for when printing?","acceptedAnswer":{"@type":"Answer","text":"Turn off Fit to Page in the print dialog and print at Actual Size or 100% scale. Otherwise the sheets come out at different scales and the pieces will not line up."}},
+    {"@type":"Question","name":"Can it print several photos on one page?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is the tiling mode. It arranges multiple images on a single A4 sheet in a grid without cropping them, keeping each image's aspect ratio."}}
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="site-head">
+  <div class="shell site-head__in">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="13" fill="#2563EB"/>
+        <g fill="#EFF6FF">
+          <rect x="10" y="17" width="13" height="12" rx="1"/>
+          <rect x="25.5" y="17" width="13" height="12" rx="1"/>
+          <rect x="41" y="17" width="13" height="12" rx="1"/>
+          <rect x="10" y="31" width="13" height="12" rx="1"/>
+          <rect x="25.5" y="31" width="13" height="12" rx="1"/>
+          <rect x="41" y="31" width="13" height="12" rx="1"/>
+        </g>
+        <circle cx="32" cy="30" r="10" fill="none" stroke="#EF4444" stroke-width="3.4"/>
+      </svg>
+      Poster Basım
+    </a>
+    <nav class="site-nav" aria-label="On this page">
+      <a href="#how">How it works</a>
+      <a href="#modes">Two modes</a>
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/mustafasneu/poster-basim">GitHub</a>
+    </nav>
+    <p class="lang">
+      <a href="../" hreflang="tr">TR</a>
+      <span aria-hidden="true">/</span>
+      <a href="./" aria-current="page" hreflang="en">EN</a>
+    </p>
+  </div>
+</header>
+
+<main id="content">
+
+  <section class="hero">
+    <div class="shell hero__in">
+      <div>
+        <h1>Split an image across A4 sheets and print it as a poster</h1>
+        <p class="hero__lede">
+          Takes an image or a PDF, divides it across A4 pages without stretching it,
+          and exports one print-ready PDF that lines up when you cut and tape the
+          sheets together. An ordinary home printer is enough.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn--primary" id="ana-indirme" href="#download" data-win="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Windows.exe" data-mac="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-macOS.zip" data-linux="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Linux">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <span id="ana-indirme-yazi">Download the app</span>
+          </a>
+          <a class="btn btn--ghost" href="#how">See how it works</a>
+        </div>
+        <p class="hero__note">
+          <b>Version 1.2</b> · Windows, macOS, Linux · MIT licensed, free ·
+          nothing is uploaded anywhere
+        </p>
+      </div>
+
+      <div class="sheets">
+        <svg viewBox="0 0 936 448" role="img" aria-labelledby="sheets-title">
+          <title id="sheets-title">One image divided across six A4 sheets, each with print margins and a page number</title>
+          <defs>
+            <linearGradient id="art-bg" x1="0" y1="0" x2="0.35" y2="1">
+              <stop offset="0" stop-color="#1E3A8A"/>
+              <stop offset="1" stop-color="#38BDF8"/>
+            </linearGradient>
+            <g id="art">
+              <rect width="900" height="424" fill="url(#art-bg)"/>
+              <circle cx="205" cy="212" r="126" fill="#FDE047"/>
+              <circle cx="497" cy="170" r="86" fill="#F87171"/>
+              <circle cx="726" cy="268" r="104" fill="#34D399"/>
+              <g fill="none" stroke="#0F172A" stroke-width="5">
+                <circle cx="452" cy="222" r="26"/>
+                <circle cx="452" cy="222" r="52"/>
+                <circle cx="452" cy="222" r="78"/>
+              </g>
+            </g>
+          </defs>
+
+          <g>
+            <g class="sheet-tile" style="--i:0">
+              <rect x="6" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="16" y="16" width="280" height="192" viewBox="0 0 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="22" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">1 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:1">
+              <rect x="318" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="328" y="16" width="280" height="192" viewBox="300 0 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="334" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">2 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:2">
+              <rect x="630" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="640" y="16" width="280" height="192" viewBox="600 0 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="646" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">3 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:3">
+              <rect x="6" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="16" y="240" width="280" height="192" viewBox="0 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="22" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">4 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:4">
+              <rect x="318" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="328" y="240" width="280" height="192" viewBox="300 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="334" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">5 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:5">
+              <rect x="630" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="640" y="240" width="280" height="192" viewBox="600 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="646" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">6 / 6</text>
+            </g>
+
+            <circle cx="468" cy="224" r="17" fill="none" stroke="#EF4444" stroke-width="3"/>
+            <path d="M468 200v-9M468 257v-9M444 224h-9M501 224h-9" stroke="#EF4444" stroke-width="3" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="proportions">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Circles stay circles</h2>
+        <p>
+          Most tools stretch the image to fill the page grid: hand a 16:9 photo to a
+          3×2 sheet layout and faces get wider, circles flatten. Here the aspect ratio
+          is preserved and the leftover area is left white.
+        </p>
+      </div>
+      <div class="proof-pair">
+        <figure class="proof-case" style="margin:0">
+          <div class="proof-frame">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Aspect ratio preserved: the circle is still a circle">
+              <rect width="300" height="200" fill="#EFF6FF"/>
+              <rect x="0" y="26" width="300" height="148" fill="#1D4ED8"/>
+              <circle cx="150" cy="100" r="58" fill="#FDE047"/>
+              <g stroke="#93C5FD" stroke-width="1" stroke-dasharray="4 4">
+                <path d="M100 0v200M200 0v200M0 100h300"/>
+              </g>
+            </svg>
+          </div>
+          <figcaption><b>Poster Basım</b> — ratio kept, leftover area left white</figcaption>
+        </figure>
+        <figure class="proof-case proof-case--bad" style="margin:0">
+          <div class="proof-frame">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Aspect ratio broken: the circle is squashed into an ellipse">
+              <rect width="300" height="200" fill="#1D4ED8"/>
+              <ellipse cx="150" cy="100" rx="88" ry="58" fill="#FDE047"/>
+              <g stroke="#93C5FD" stroke-width="1" stroke-dasharray="4 4">
+                <path d="M100 0v200M200 0v200M0 100h300"/>
+              </g>
+            </svg>
+          </div>
+          <figcaption><b>Stretched output</b> — image forced to fill the sheets</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="how">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Three steps to a poster</h2>
+        <p>Once the app is open, all you decide is how many sheets you want.</p>
+      </div>
+      <ol class="steps">
+        <li>
+          <div>
+            <h3>Hand it the file</h3>
+            <p>
+              Drop it on the window, browse for it, or paste a web address. JPG, PNG,
+              TIFF, PSD, HEIC, RAW, PDF and AI files are accepted; for a multi-page
+              PDF the app asks which page becomes the poster.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Say how many sheets</h3>
+            <p>
+              Enter columns and rows — 4 × 2 means eight A4 sheets. The app works out
+              the finished poster size and the printing resolution, and warns you
+              before export if that resolution is too low.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Export and print</h3>
+            <p>
+              You get a print-ready PDF, an image of every tile and a printing report.
+              In the print dialog keep "Fit to Page" off and "Actual Size" on, or the
+              pieces will not line up.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="modes">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Two modes, opposite jobs</h2>
+        <p>The same app splits one image into many sheets, and gathers many images onto one.</p>
+      </div>
+      <div class="modes">
+        <div class="mode">
+          <div>
+            <h3>Poster — one image across many A4 sheets</h3>
+            <p>
+              Classroom display, shop window, party banner. Every sheet carries cut
+              lines, corner marks, alignment crosses and a neighbour label, and the
+              PDF opens with an assembly map.
+            </p>
+            <ul>
+              <li>Overlap margin gives you tolerance when taping</li>
+              <li>The printer's unprintable margin is accounted for</li>
+              <li>Every sheet prints at exactly the same scale</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img src="../img/arayuz.png" alt="The main window: splitting controls on the left, gridded poster preview on the right" width="1150" height="780" loading="lazy" decoding="async">
+            <figcaption>Controls and live preview sit in the same window.</figcaption>
+          </figure>
+        </div>
+
+        <div class="mode mode--flip">
+          <div>
+            <h3>Tiling — many images onto one A4</h3>
+            <p>
+              Catalogue sheet, product photos, ID photos. Images are never cropped;
+              each one is fitted into its cell with its aspect ratio intact. Every
+              drop adds to the list instead of replacing it.
+            </p>
+            <ul>
+              <li>You choose the grid and the number of cells</li>
+              <li>Fitted, not cropped</li>
+              <li>Output is again a print-ready PDF</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img src="../img/dizme.png" alt="Tiling mode: grid settings on the left, a preview of nine images laid out on one A4 sheet on the right" width="1150" height="780" loading="lazy" decoding="async">
+            <figcaption>In tiling mode you decide how the images are laid out.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="features">
+    <div class="shell">
+      <div class="section__head">
+        <h2>The details that decide whether it prints</h2>
+        <p>
+          The app does more than resize; it handles the things that make the pieces
+          actually fit on paper.
+        </p>
+      </div>
+      <div class="specs">
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>
+          <div>
+            <h3>Cutting and assembly aids</h3>
+            <p>Cut lines, corner marks, alignment crosses and neighbour labels on every sheet, plus an assembly map at the front of the PDF.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+          <div>
+            <h3>Printing report</h3>
+            <p>Size, DPI, sheet count, total length to cut and any warnings — shown before export and written to the output folder as a text file.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15V5a2 2 0 0 0-2-2H9"/><path d="M3 9v10a2 2 0 0 0 2 2h10"/><path d="m7 13 3-3 3 3 4-4"/></svg>
+          <div>
+            <h3>Wide format support</h3>
+            <p>JPG, PNG, BMP, WEBP, TIFF, PSD, HEIC, RAW (CR2/NEF/ARW/DNG), PDF and AI. CMYK and 16-bit sources are converted to print-ready RGB.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <div>
+            <h3>1:1 actual-size preview</h3>
+            <p>Shows a region of the poster at its real paper size, calibrated with an on-screen ruler, so you decide before spending ink.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 3v9h9"/></svg>
+          <div>
+            <h3>Colour management</h3>
+            <p>Embedded ICC profiles are converted to sRGB, with colour and contrast compensation for matte, glossy and copier paper.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><rect x="4" y="7" width="16" height="8" rx="1"/><path d="M7 15v5h10v-5"/></svg>
+          <div>
+            <h3>Output format options</h3>
+            <p>A print-ready PDF every time, optionally with lossless PNG tiles, a multi-page TIFF for print shops, and per-page PNGs.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.2 8.4 8 9 4.8-.6 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <div>
+            <h3>Runs offline</h3>
+            <p>Splitting, scaling and PDF export happen on your machine. The optional AI upscaling add-on also runs locally.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4v16M4 8h16M4 16h16"/></svg>
+          <div>
+            <h3>Print enhancement</h3>
+            <p>Unsharp mask, auto levels and white balance, noise reduction, with presets for photos, posters, scans and phone pictures.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="download">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Download</h2>
+        <p>A single file, no installer, opens on double click. Version 1.2, MIT licensed.</p>
+      </div>
+
+      <div class="downloads">
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.2 4.5v7.1H3zM11.4 4.3 21 3v8.6h-9.6zM3 12.6h7.2v7.1L3 18.6zM11.4 12.6H21V21l-9.6-1.3z"/></svg>
+          <div>
+            <p class="dl__name">Windows 10 / 11</p>
+            <p class="dl__meta">Poster-Basim-Windows.exe · 57 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Windows.exe">Download</a>
+        </div>
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.9zM14.1 5.4c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>
+          <div>
+            <p class="dl__name">macOS 11 and later</p>
+            <p class="dl__meta">Poster-Basim-macOS.zip · 50 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-macOS.zip">Download</a>
+        </div>
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.7-3.4 3.9 0 1.5-.2 2.4-.9 3.5C6.6 11.2 5 13.4 5 15.7c0 1 .4 1.7 1 2.2-.3.8.2 1.6 1.1 1.9 1.1.4 2.5.2 3.1-.4h1.6c.6.6 2 .8 3.1.4.9-.3 1.4-1.1 1.1-1.9.6-.5 1-1.2 1-2.2 0-2.3-1.6-4.5-2.7-6.3-.7-1.1-.9-2-.9-3.5C13.4 3.7 12.2 2 12 2z"/></svg>
+          <div>
+            <p class="dl__name">Linux</p>
+            <p class="dl__meta">Poster-Basim-Linux · 82 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Linux">Download</a>
+        </div>
+      </div>
+
+      <p class="dl-note">
+        If macOS says the developer cannot be verified on first launch, right-click the
+        file and choose <b>Open → Open</b>. Prefer to run from source? Python 3.10 or
+        newer is all you need; steps are in the
+        <a href="https://github.com/mustafasneu/poster-basim#kurulum">repository</a>.
+        The illustrated manual is in Turkish:
+        <a href="https://github.com/mustafasneu/poster-basim/releases/latest/download/KULLANIM_KILAVUZU.pdf">KULLANIM_KILAVUZU.pdf</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="faq">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Questions</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>How many A4 pages can I split an image across?</summary>
+          <p>
+            You choose the columns and rows — 4 columns by 2 rows makes eight A4
+            sheets. The app calculates the finished poster size and the printing
+            resolution for that grid, and warns you before export if the resolution
+            is too low.
+          </p>
+        </details>
+        <details>
+          <summary>Is this an offline alternative to PosteRazor or Rasterbator?</summary>
+          <p>
+            Yes. It is a desktop application for Windows, macOS and Linux. Splitting,
+            scaling and PDF export all happen on your machine, so nothing is uploaded
+            to a server.
+          </p>
+        </details>
+        <details>
+          <summary>Do I need Python installed?</summary>
+          <p>
+            Not if you download the packaged build from this page — it is a single
+            file and runs on double click. Running from source requires Python 3.10
+            or newer.
+          </p>
+        </details>
+        <details>
+          <summary>Which file formats can I open?</summary>
+          <p>
+            JPG, PNG, BMP, WEBP, TIFF, PSD, HEIC, RAW files such as CR2, NEF, ARW and
+            DNG, plus PDF and AI. CMYK and 16-bit sources are converted to print-ready
+            RGB.
+          </p>
+        </details>
+        <details>
+          <summary>What should I watch out for when printing?</summary>
+          <p>
+            Turn off "Fit to Page" in the print dialog and print at "Actual Size" or
+            100% scale. Otherwise the sheets come out at different scales and the
+            pieces will not line up.
+          </p>
+        </details>
+        <details>
+          <summary>Can it print several photos on one page?</summary>
+          <p>
+            Yes — that is the tiling mode. It arranges multiple images on a single A4
+            sheet in a grid without cropping them, keeping each image's aspect ratio.
+          </p>
+        </details>
+        <details>
+          <summary>Is the interface in English?</summary>
+          <p>
+            The application interface is in Turkish, and so is the illustrated manual.
+            The workflow is short — pick a file, set columns and rows, export — and
+            this page describes each control, but a fully English interface is not
+            available yet.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="shell site-foot__in">
+    <p>
+      Poster Basım — open-source desktop poster splitter. MIT licensed.
+      <br>powered by Omer OZTURK
+    </p>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="https://github.com/mustafasneu/poster-basim">Source code</a>
+      <a href="https://github.com/mustafasneu/poster-basim/releases/latest">Releases</a>
+      <a href="https://github.com/mustafasneu/poster-basim/issues">Report an issue</a>
+      <a href="../" hreflang="tr">Türkçe</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../app.js" defer></script>
+</body>
+</html>

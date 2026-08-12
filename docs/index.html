@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poster Basım — Görseli A4 kağıtlara bölüp poster yazdırma programı</title>
+<meta name="description" content="Bir resmi veya PDF'i oranını bozmadan A4 sayfalara böler, baskıya hazır PDF üretir. Windows, macOS ve Linux için ücretsiz masaüstü program. Dosyanız bilgisayarınızdan çıkmaz.">
+<link rel="canonical" href="https://mustafasneu.github.io/poster-basim/">
+<link rel="alternate" hreflang="tr" href="https://mustafasneu.github.io/poster-basim/">
+<link rel="alternate" hreflang="en" href="https://mustafasneu.github.io/poster-basim/en/">
+<link rel="alternate" hreflang="x-default" href="https://mustafasneu.github.io/poster-basim/">
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:title" content="Poster Basım — Görseli A4 kağıtlara bölüp poster yazdırma programı">
+<meta property="og:description" content="Görseli oranını bozmadan A4 sayfalara böler, baskıya hazır PDF üretir. Ücretsiz, kurulum istemez, dosya yüklemez.">
+<meta property="og:url" content="https://mustafasneu.github.io/poster-basim/">
+<meta property="og:image" content="https://mustafasneu.github.io/poster-basim/img/onizleme-karti.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="img/simge.png" sizes="any">
+<link rel="apple-touch-icon" href="img/simge.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Poster Basım",
+  "applicationCategory": "DesignApplication",
+  "operatingSystem": "Windows, macOS, Linux",
+  "description": "Bir görseli veya PDF'i oranını bozmadan A4 sayfalara bölüp baskıya hazır PDF üreten masaüstü program. Ayrıca çok sayıda resmi tek A4 sayfaya dizer.",
+  "url": "https://mustafasneu.github.io/poster-basim/",
+  "downloadUrl": "https://github.com/mustafasneu/poster-basim/releases/latest",
+  "softwareVersion": "1.2",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY" },
+  "inLanguage": "tr"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"Bir görseli kaç A4 kağıda bölebilirim?","acceptedAnswer":{"@type":"Answer","text":"Sütun ve satır sayısını siz girersiniz; örneğin 4 sütun × 2 satır 8 A4 eder. Program seçtiğiniz sayfa sayısında posterin gerçek ölçüsünü ve baskı çözünürlüğünü hesaplar, çözünürlük düşük kalıyorsa üretimden önce uyarır."}},
+    {"@type":"Question","name":"Programı kullanmak için Python kurmam gerekir mi?","acceptedAnswer":{"@type":"Answer","text":"Hazır paketi indirirseniz hayır; tek dosya halinde gelir ve çift tıklayınca açılır. Kaynak koddan çalıştırmak isterseniz Python 3.10 veya üstü gerekir."}},
+    {"@type":"Question","name":"Görselim bir sunucuya yükleniyor mu?","acceptedAnswer":{"@type":"Answer","text":"Hayır. Bölme, ölçekleme ve PDF üretimi bilgisayarınızda yapılır. İsteğe bağlı yapay zekâ büyütme eklentisi de kendi makinenizde çalışır."}},
+    {"@type":"Question","name":"iPhone'dan gelen HEIC fotoğrafı açılır mı?","acceptedAnswer":{"@type":"Answer","text":"Evet. HEIC'in yanı sıra JPG, PNG, BMP, WEBP, TIFF, PSD, PDF, AI ve CR2/NEF/ARW/DNG gibi RAW dosyaları desteklenir."}},
+    {"@type":"Question","name":"Yazdırırken nelere dikkat etmeliyim?","acceptedAnswer":{"@type":"Answer","text":"Yazıcı penceresinde Sayfaya Sığdır seçeneğini kapatın, Gerçek Boyut veya %100 ölçek ile yazdırın. Aksi halde sayfalar farklı ölçekte basılır ve parçalar birleşmez."}},
+    {"@type":"Question","name":"Çok sayıda fotoğrafı tek sayfaya nasıl dizerim?","acceptedAnswer":{"@type":"Answer","text":"Dizme modunu seçin. Program resimleri kırpmadan, oranlarını koruyarak tek A4 sayfaya ızgara halinde yerleştirir; katalog, ürün fotoğrafı ve vesikalık için kullanılır."}},
+    {"@type":"Question","name":"Program ücretli mi?","acceptedAnswer":{"@type":"Answer","text":"Ücretsiz ve açık kaynak. MIT lisansıyla dağıtılır, kaynak kodu GitHub'da açıktır."}}
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#icerik">İçeriğe geç</a>
+
+<header class="site-head">
+  <div class="shell site-head__in">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="13" fill="#2563EB"/>
+        <g fill="#EFF6FF">
+          <rect x="10" y="17" width="13" height="12" rx="1"/>
+          <rect x="25.5" y="17" width="13" height="12" rx="1"/>
+          <rect x="41" y="17" width="13" height="12" rx="1"/>
+          <rect x="10" y="31" width="13" height="12" rx="1"/>
+          <rect x="25.5" y="31" width="13" height="12" rx="1"/>
+          <rect x="41" y="31" width="13" height="12" rx="1"/>
+        </g>
+        <circle cx="32" cy="30" r="10" fill="none" stroke="#EF4444" stroke-width="3.4"/>
+      </svg>
+      Poster Basım
+    </a>
+    <nav class="site-nav" aria-label="Sayfa içi">
+      <a href="#nasil">Nasıl çalışır</a>
+      <a href="#modlar">İki mod</a>
+      <a href="#ozellikler">Özellikler</a>
+      <a href="#indir">İndir</a>
+      <a href="https://github.com/mustafasneu/poster-basim">GitHub</a>
+    </nav>
+    <p class="lang">
+      <a href="./" aria-current="page" hreflang="tr">TR</a>
+      <span aria-hidden="true">/</span>
+      <a href="en/" hreflang="en">EN</a>
+    </p>
+  </div>
+</header>
+
+<main id="icerik">
+
+  <section class="hero">
+    <div class="shell hero__in">
+      <div>
+        <h1>Görseli A4 kağıtlara bölün, poster olarak yazdırın</h1>
+        <p class="hero__lede">
+          Elinizdeki resmi ya da PDF'i oranını bozmadan A4 sayfalara böler, kesip
+          yapıştırdığınızda birleşen baskıya hazır tek PDF üretir. Evdeki sıradan
+          yazıcı yeter.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn--primary" id="ana-indirme" href="#indir" data-win="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Windows.exe" data-mac="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-macOS.zip" data-linux="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Linux">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <span id="ana-indirme-yazi">Programı indir</span>
+          </a>
+          <a class="btn btn--ghost" href="#nasil">Nasıl çalıştığını gör</a>
+        </div>
+        <p class="hero__note">
+          <b>Sürüm 1.2</b> · Windows, macOS, Linux · MIT lisansı, ücretsiz ·
+          dosyalarınız bilgisayarınızdan çıkmaz
+        </p>
+      </div>
+
+      <div class="sheets">
+        <svg viewBox="0 0 936 448" role="img" aria-labelledby="sheets-baslik">
+          <title id="sheets-baslik">Tek bir görselin altı A4 sayfaya bölünmüş hali; her sayfada kesim payı ve sayfa numarası var</title>
+          <defs>
+            <linearGradient id="art-bg" x1="0" y1="0" x2="0.35" y2="1">
+              <stop offset="0" stop-color="#1E3A8A"/>
+              <stop offset="1" stop-color="#38BDF8"/>
+            </linearGradient>
+            <g id="art">
+              <rect width="900" height="424" fill="url(#art-bg)"/>
+              <circle cx="205" cy="212" r="126" fill="#FDE047"/>
+              <circle cx="497" cy="170" r="86" fill="#F87171"/>
+              <circle cx="726" cy="268" r="104" fill="#34D399"/>
+              <g fill="none" stroke="#0F172A" stroke-width="5">
+                <circle cx="452" cy="222" r="26"/>
+                <circle cx="452" cy="222" r="52"/>
+                <circle cx="452" cy="222" r="78"/>
+              </g>
+            </g>
+          </defs>
+
+          <g>
+            <!-- 3 sütun × 2 satır: her karo bir A4 sayfası -->
+            <g class="sheet-tile" style="--i:0">
+              <rect x="6" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="16" y="16" width="280" height="192" viewBox="0 0 300 212" preserveAspectRatio="none"><use href="#art" x="0" y="0"/></svg>
+              <text x="22" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">1 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:1">
+              <rect x="318" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="328" y="16" width="280" height="192" viewBox="300 0 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="334" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">2 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:2">
+              <rect x="630" y="6" width="300" height="212" fill="#fff"/>
+              <svg x="640" y="16" width="280" height="192" viewBox="600 0 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="646" y="210" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">3 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:3">
+              <rect x="6" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="16" y="240" width="280" height="192" viewBox="0 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="22" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">4 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:4">
+              <rect x="318" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="328" y="240" width="280" height="192" viewBox="300 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="334" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">5 / 6</text>
+            </g>
+            <g class="sheet-tile" style="--i:5">
+              <rect x="630" y="230" width="300" height="212" fill="#fff"/>
+              <svg x="640" y="240" width="280" height="192" viewBox="600 212 300 212" preserveAspectRatio="none"><use href="#art"/></svg>
+              <text x="646" y="434" font-size="9" fill="#64748B" font-family="Archivo, sans-serif">6 / 6</text>
+            </g>
+
+            <!-- Hizalama işareti: dört sayfanın buluştuğu nokta -->
+            <circle cx="468" cy="224" r="17" fill="none" stroke="#EF4444" stroke-width="3"/>
+            <path d="M468 200v-9M468 257v-9M444 224h-9M501 224h-9" stroke="#EF4444" stroke-width="3" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="sunme">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Daireler daire kalır</h2>
+        <p>
+          Çoğu araç görseli sayfa matrisinin oranına doldurur; 3×2 kâğıda 16:9 bir
+          görsel verdiğinizde yüzler genişler, daireler basıklaşır. Burada görsel
+          oranı korunarak yerleştirilir, artan alan beyaz bırakılır.
+        </p>
+      </div>
+      <div class="proof-pair">
+        <figure class="proof-case" style="margin:0">
+          <div class="proof-frame">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Oranı korunmuş çıktı: daire tam daire duruyor">
+              <rect width="300" height="200" fill="#EFF6FF"/>
+              <rect x="0" y="26" width="300" height="148" fill="#1D4ED8"/>
+              <circle cx="150" cy="100" r="58" fill="#FDE047"/>
+              <g stroke="#93C5FD" stroke-width="1" stroke-dasharray="4 4">
+                <path d="M100 0v200M200 0v200M0 100h300"/>
+              </g>
+            </svg>
+          </div>
+          <figcaption><b>Poster Basım</b> — oran korunur, artan alan beyaz kalır</figcaption>
+        </figure>
+        <figure class="proof-case proof-case--bad" style="margin:0">
+          <div class="proof-frame">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Oranı bozulmuş çıktı: daire yanlara doğru basıklaşmış elips">
+              <rect width="300" height="200" fill="#1D4ED8"/>
+              <ellipse cx="150" cy="100" rx="88" ry="58" fill="#FDE047"/>
+              <g stroke="#93C5FD" stroke-width="1" stroke-dasharray="4 4">
+                <path d="M100 0v200M200 0v200M0 100h300"/>
+              </g>
+            </svg>
+          </div>
+          <figcaption><b>Sünmüş çıktı</b> — görsel kâğıda zorla doldurulmuş</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="nasil">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Üç adımda poster</h2>
+        <p>Programı açtıktan sonra tek yapmanız gereken kaç kâğıt istediğinizi söylemek.</p>
+      </div>
+      <ol class="steps">
+        <li>
+          <div>
+            <h3>Dosyayı verin</h3>
+            <p>
+              Pencereye sürükleyip bırakın, bilgisayardan seçin ya da internetteki bir
+              adresi yapıştırın. JPG, PNG, TIFF, PSD, HEIC, RAW, PDF ve AI dosyaları
+              kabul edilir; çok sayfalı PDF'te hangi sayfanın poster olacağı sorulur.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Kaç kâğıt olacağını girin</h3>
+            <p>
+              Sütun ve satır sayısını yazın — örneğin 4 × 2, sekiz A4 demek. Program
+              posterin gerçek ölçüsünü ve baskı çözünürlüğünü hesaplar; çözünürlük
+              düşük kalıyorsa üretimden önce uyarır.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>PDF'i üretin ve yazdırın</h3>
+            <p>
+              Çıktı klasörüne baskıya hazır PDF, her parçanın görüntüsü ve bir baskı
+              raporu düşer. Yazdırırken "Sayfaya Sığdır" kapalı, "Gerçek Boyut" açık
+              olsun; yoksa parçalar birleşmez.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="modlar">
+    <div class="shell">
+      <div class="section__head">
+        <h2>İki mod, ters yönde iki iş</h2>
+        <p>Aynı program hem tek görseli çoğa böler, hem çok görseli teke toplar.</p>
+      </div>
+      <div class="modes">
+        <div class="mode">
+          <div>
+            <h3>Poster — tek görseli A4'lere böl</h3>
+            <p>
+              Sınıf panosu, dükkân vitrini, doğum günü afişi. Sayfalarda kesim
+              çizgisi, köşe işaretleri, hizalama artıları ve komşuluk etiketi bulunur;
+              PDF'in başına montaj haritası eklenir.
+            </p>
+            <ul>
+              <li>Çakışma payı ile kesip yapıştırmada tolerans</li>
+              <li>Yazıcının basamadığı kenar payı hesaba katılır</li>
+              <li>Bütün sayfalar birebir aynı ölçekte basılır</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img src="img/arayuz.png" alt="Programın ana penceresi: solda bölme ayarları, sağda posterin ızgaralı önizlemesi" width="1150" height="780" loading="lazy" decoding="async">
+            <figcaption>Bölme ayarları ve canlı önizleme aynı pencerede.</figcaption>
+          </figure>
+        </div>
+
+        <div class="mode mode--flip">
+          <div>
+            <h3>Dizme — çok resmi tek A4'e topla</h3>
+            <p>
+              Katalog sayfası, ürün fotoğrafı, vesikalık. Resimler kırpılmaz; oranı
+              korunarak hücreye sığdırılır. Her sürükle-bırak listeye ekler,
+              öncekileri silmez.
+            </p>
+            <ul>
+              <li>Izgara düzeni ve hücre sayısı sizin seçiminizde</li>
+              <li>Kırpma yok, sığdırma var</li>
+              <li>Çıktı yine baskıya hazır PDF</li>
+            </ul>
+          </div>
+          <figure class="shot">
+            <img src="img/dizme.png" alt="Dizme modu: solda ızgara ayarları, sağda dokuz resmin tek A4 sayfaya yerleştirilmiş önizlemesi" width="1150" height="780" loading="lazy" decoding="async">
+            <figcaption>Dizme modunda kaç resmin nasıl yerleşeceğini siz belirlersiniz.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="ozellikler">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Baskıya giden yolu düşünen ayrıntılar</h2>
+        <p>
+          Program bir ölçekleyiciden fazlası; çıktının kâğıtta tutmasını sağlayan
+          işleri de üstleniyor.
+        </p>
+      </div>
+      <div class="specs">
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>
+          <div>
+            <h3>Kesim ve montaj yardımı</h3>
+            <p>Her sayfada kesim çizgisi, köşe işaretleri, hizalama artıları ve komşuluk etiketi; PDF'in başında montaj haritası.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+          <div>
+            <h3>Baskı raporu</h3>
+            <p>Üretimden önce ölçü, DPI, kâğıt sayısı, kesilecek uzunluk ve uyarılar; çıktı klasörüne metin dosyası olarak da yazılır.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15V5a2 2 0 0 0-2-2H9"/><path d="M3 9v10a2 2 0 0 0 2 2h10"/><path d="m7 13 3-3 3 3 4-4"/></svg>
+          <div>
+            <h3>Geniş dosya desteği</h3>
+            <p>JPG, PNG, BMP, WEBP, TIFF, PSD, HEIC, RAW (CR2/NEF/ARW/DNG), PDF ve AI. CMYK ve 16-bit kaynaklar baskıya uygun RGB'ye çevrilir.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <div>
+            <h3>1:1 gerçek boyut önizleme</h3>
+            <p>Posterin bir bölgesini kâğıttaki ölçüsünde gösterir; ekran cetveliyle kalibre edilir, kâğıda basmadan karar verirsiniz.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 3v9h9"/></svg>
+          <div>
+            <h3>Renk yönetimi</h3>
+            <p>Gömülü ICC profili sRGB'ye çevrilir; mat, parlak ve fotokopi kâğıdına göre renk ve kontrast telafisi uygulanır.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><rect x="4" y="7" width="16" height="8" rx="1"/><path d="M7 15v5h10v-5"/></svg>
+          <div>
+            <h3>Çıktı formatı seçenekleri</h3>
+            <p>Baskıya hazır PDF her zaman üretilir. İstenirse kayıpsız PNG karolar, matbaanın istediği çok sayfalı TIFF ve sayfa PNG'leri eklenir.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.2 8.4 8 9 4.8-.6 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <div>
+            <h3>Çevrimdışı çalışır</h3>
+            <p>Bölme, ölçekleme ve PDF üretimi bilgisayarınızda yapılır. İsteğe bağlı yapay zekâ büyütme eklentisi de kendi makinenizde çalışır.</p>
+          </div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4v16M4 8h16M4 16h16"/></svg>
+          <div>
+            <h3>Baskı iyileştirme</h3>
+            <p>Unsharp mask, otomatik seviye ve beyaz dengesi, gürültü azaltma; fotoğraf, afiş, tarama ve telefon için hazır ayarlar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="indir">
+    <div class="shell">
+      <div class="section__head">
+        <h2>İndirin</h2>
+        <p>
+          Tek dosya halinde gelir, kurulum istemez, çift tıklayınca açılır. Sürüm 1.2,
+          MIT lisansı.
+        </p>
+      </div>
+
+      <div class="downloads">
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.2 4.5v7.1H3zM11.4 4.3 21 3v8.6h-9.6zM3 12.6h7.2v7.1L3 18.6zM11.4 12.6H21V21l-9.6-1.3z"/></svg>
+          <div>
+            <p class="dl__name">Windows 10 / 11</p>
+            <p class="dl__meta">Poster-Basim-Windows.exe · 57 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Windows.exe">İndir</a>
+        </div>
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.9zM14.1 5.4c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>
+          <div>
+            <p class="dl__name">macOS 11 ve üstü</p>
+            <p class="dl__meta">Poster-Basim-macOS.zip · 50 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-macOS.zip">İndir</a>
+        </div>
+        <div class="dl">
+          <svg class="os" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.7-3.4 3.9 0 1.5-.2 2.4-.9 3.5C6.6 11.2 5 13.4 5 15.7c0 1 .4 1.7 1 2.2-.3.8.2 1.6 1.1 1.9 1.1.4 2.5.2 3.1-.4h1.6c.6.6 2 .8 3.1.4.9-.3 1.4-1.1 1.1-1.9.6-.5 1-1.2 1-2.2 0-2.3-1.6-4.5-2.7-6.3-.7-1.1-.9-2-.9-3.5C13.4 3.7 12.2 2 12 2z"/></svg>
+          <div>
+            <p class="dl__name">Linux</p>
+            <p class="dl__meta">Poster-Basim-Linux · 82 MB</p>
+          </div>
+          <a class="btn btn--solid" href="https://github.com/mustafasneu/poster-basim/releases/latest/download/Poster-Basim-Linux">İndir</a>
+        </div>
+      </div>
+
+      <p class="dl-note">
+        macOS ilk açılışta "geliştirici doğrulanamadı" derse dosyaya sağ tıklayıp
+        <b>Aç → Aç</b> deyin. Kaynak koddan çalıştırmayı tercih ederseniz Python 3.10
+        veya üstü yeterli; adımlar
+        <a href="https://github.com/mustafasneu/poster-basim#kurulum">depodaki kurulum bölümünde</a>.
+        Ekran görüntülü tam kılavuz:
+        <a href="https://github.com/mustafasneu/poster-basim/releases/latest/download/KULLANIM_KILAVUZU.pdf">KULLANIM_KILAVUZU.pdf</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="sss">
+    <div class="shell">
+      <div class="section__head">
+        <h2>Sık sorulanlar</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Bir görseli kaç A4 kağıda bölebilirim?</summary>
+          <p>
+            Sütun ve satır sayısını siz girersiniz; örneğin 4 sütun × 2 satır 8 A4
+            eder. Program seçtiğiniz sayfa sayısında posterin gerçek ölçüsünü ve baskı
+            çözünürlüğünü hesaplar, çözünürlük düşük kalıyorsa üretimden önce uyarır.
+          </p>
+        </details>
+        <details>
+          <summary>Programı kullanmak için Python kurmam gerekir mi?</summary>
+          <p>
+            Bu sayfadaki hazır paketi indirirseniz hayır; tek dosya halinde gelir ve
+            çift tıklayınca açılır. Kaynak koddan çalıştırmak isterseniz Python 3.10
+            veya üstü gerekir.
+          </p>
+        </details>
+        <details>
+          <summary>Görselim bir sunucuya yükleniyor mu?</summary>
+          <p>
+            Hayır. Bölme, ölçekleme ve PDF üretimi bilgisayarınızda yapılır. İsteğe
+            bağlı yapay zekâ büyütme eklentisi de kendi makinenizde çalışır; görseller
+            bilgisayardan çıkmaz.
+          </p>
+        </details>
+        <details>
+          <summary>iPhone'dan gelen HEIC fotoğrafı açılır mı?</summary>
+          <p>
+            Evet. HEIC'in yanı sıra JPG, PNG, BMP, WEBP, TIFF, PSD, PDF, AI ve
+            CR2/NEF/ARW/DNG gibi RAW dosyaları desteklenir.
+          </p>
+        </details>
+        <details>
+          <summary>Yazdırırken nelere dikkat etmeliyim?</summary>
+          <p>
+            Yazıcı penceresinde "Sayfaya Sığdır / Fit to Page" seçeneğini kapatın,
+            "Gerçek Boyut / Actual Size" ya da %100 ölçek ile yazdırın. Aksi halde
+            sayfalar farklı ölçekte basılır ve parçalar birleşmez.
+          </p>
+        </details>
+        <details>
+          <summary>Çok sayıda fotoğrafı tek sayfaya nasıl dizerim?</summary>
+          <p>
+            Dizme modunu seçin. Program resimleri kırpmadan, oranlarını koruyarak tek
+            A4 sayfaya ızgara halinde yerleştirir; katalog, ürün fotoğrafı ve vesikalık
+            için kullanılır.
+          </p>
+        </details>
+        <details>
+          <summary>Program ücretli mi?</summary>
+          <p>
+            Ücretsiz ve açık kaynak. MIT lisansıyla dağıtılır, kaynak kodu
+            <a href="https://github.com/mustafasneu/poster-basim">GitHub'da</a> açıktır.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="shell site-foot__in">
+    <p>
+      Poster Basım — açık kaynak masaüstü poster bölme programı. MIT lisansı.
+      <br>powered by Omer OZTURK
+    </p>
+    <nav class="foot-links" aria-label="Alt bağlantılar">
+      <a href="https://github.com/mustafasneu/poster-basim">Kaynak kod</a>
+      <a href="https://github.com/mustafasneu/poster-basim/releases/latest">Sürümler</a>
+      <a href="https://github.com/mustafasneu/poster-basim/issues">Sorun bildir</a>
+      <a href="en/" hreflang="en">English</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="app.js" defer></script>
+</body>
+</html>
