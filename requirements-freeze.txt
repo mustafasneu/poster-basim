@@ -1,0 +1,19 @@
+# Python 3.11.15
+# venv dondurma tarihi: 2026-08-10 (venv silinmeden önce alındı)
+# geri kurulum: uv venv --python 3.11.15 && uv pip install -r requirements-freeze.txt
+altgraph==0.17.5
+certifi==2026.7.22
+charset-normalizer==3.4.9
+flatbuffers==25.12.19
+numpy==2.4.6
+onnxruntime==1.28.0
+packaging==26.3
+pillow==12.3.0
+pillow_heif==1.5.0
+protobuf==7.35.1
+pyinstaller==6.21.0
+pyinstaller-hooks-contrib==2026.6
+pypdfium2==5.12.1
+rawpy==0.27.0
+reportlab==5.0.0
+truststore==0.10.4
