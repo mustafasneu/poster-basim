@@ -1,4 +1,15 @@
-# Poster Basım
+# Poster Basım — görseli A4 kağıtlara bölüp poster olarak yazdırma programı
+
+Bir resmi ya da PDF'i **oranını bozmadan A4 sayfalara böler**, kesip yapıştırdığınızda
+birleşen baskıya hazır tek PDF üretir. Windows, macOS ve Linux için ücretsiz, açık kaynak
+masaüstü program; dosyanız hiçbir sunucuya yüklenmez.
+
+**[Tanıtım sayfası ve indirme →](https://mustafasneu.github.io/poster-basim/)** ·
+[English](https://mustafasneu.github.io/poster-basim/en/)
+
+> Desktop app that splits an image or PDF across A4 sheets without distorting it and
+> exports a print-ready PDF — an offline alternative to browser-based poster splitters.
+> It also tiles many images onto a single A4 sheet.
 
 İki modu var:
 
