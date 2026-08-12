@@ -8,6 +8,9 @@ on:
 
 jobs:
   paket:
+    # Releases'a dosya yuklemek icin gerekli; deponun varsayilan izni salt-okunur.
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
