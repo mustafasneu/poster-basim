@@ -26,10 +26,20 @@ pyinstaller --noconfirm --clean --onefile --windowed \
     --collect-all onnxruntime \
     poster_bolme.py
 
-# macOS'ta .app bir klasördür; yapı bozulmasın diye zip'lenir.
-if [[ "${RUNNER_OS:-}" == "macOS" ]]; then
-    ( cd dist && zip -qry "Poster Basim-macOS.zip" "Poster Basim.app" && rm -rf "Poster Basim.app" )
-fi
+# Çıktı adına platform eklenir: indiren kişi hangi sürüm olduğunu görsün.
+# Boşluk yerine tire, çünkü GitHub Releases boşlukları noktaya çeviriyor.
+case "${RUNNER_OS:-$(uname -s)}" in
+    Windows)
+        mv "dist/Poster Basim.exe" "dist/Poster-Basim-Windows.exe"
+        ;;
+    macOS | Darwin)
+        # .app bir klasördür; yapı bozulmasın diye zip'lenir.
+        ( cd dist && zip -qry "Poster-Basim-macOS.zip" "Poster Basim.app" && rm -rf "Poster Basim.app" )
+        ;;
+    *)
+        mv "dist/Poster Basim" "dist/Poster-Basim-Linux"
+        ;;
+esac
 
 # Kılavuz paketin yanında dursun.
 cp KULLANIM_KILAVUZU.pdf dist/ 2>/dev/null || true
