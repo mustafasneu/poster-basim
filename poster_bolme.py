@@ -1486,7 +1486,11 @@ def surukle_birak_baglat(root: tk.Misc) -> bool:
         from tkinterdnd2 import TkinterDnD  # noqa: PLC0415
 
         TkinterDnD._require(root)
-    except (ImportError, RuntimeError, tk.TclError):
+        # tkinterdnd2 yöntemleri yalnız BaseWidget'a ekler; düz tk.Tk kökü bunlardan
+        # yoksundur ve drop_target_register çağrısı AttributeError ile programı düşürür.
+        if not isinstance(root, TkinterDnD.DnDWrapper):
+            root.__class__ = type("DnDKok", (root.__class__, TkinterDnD.DnDWrapper), {})
+    except (ImportError, RuntimeError, TypeError, tk.TclError):
         return False
     return True
 
@@ -1645,9 +1649,13 @@ class SunmesizBaskiApp:
             from tkinterdnd2 import DND_FILES  # noqa: PLC0415
 
             # Pencerenin tamamı hedeftir: kullanıcı dosyayı nereye bırakacağını aramasın.
-            for hedef in (self.root, self.onizleme_label, self.sag_panel):
-                hedef.drop_target_register(DND_FILES)
-                hedef.dnd_bind("<<Drop>>", self.dosya_birakildi)
+            try:
+                for hedef in (self.root, self.onizleme_label, self.sag_panel):
+                    hedef.drop_target_register(DND_FILES)
+                    hedef.dnd_bind("<<Drop>>", self.dosya_birakildi)
+            except (AttributeError, tk.TclError):
+                # Sürükle-bırak yan özelliktir; kurulamazsa program açılmaya devam eder.
+                self.dnd_etkin = False
         # Karşılama metni tek yerden üretilsin; sürükleme yazısı duruma göre eklenir.
         self.bekleme_metnini_tazele()
 
