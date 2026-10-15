@@ -25,4 +25,4 @@ echo Sonra bu dosyaya tekrar cift tiklayin.
 echo.
 pause
 
-rem powered by Omer OZTURK
+rem powered by Ömer ÖZTÜRK & Mustafa ŞEKER

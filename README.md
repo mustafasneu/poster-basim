@@ -168,4 +168,4 @@ MIT — bkz. [LICENSE](LICENSE).
 
 ---
 
-powered by Omer OZTURK
+powered by Ömer ÖZTÜRK & Mustafa ŞEKER

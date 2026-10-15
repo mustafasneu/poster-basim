@@ -16,7 +16,7 @@ PROJE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GORSEL = os.path.join(PROJE, "manuel", "gorseller")
 CIKTI = os.path.join(PROJE, "KULLANIM_KILAVUZU.html")
 
-IMZA = "powered by Omer OZTURK"
+IMZA = "powered by Ömer ÖZTÜRK & Mustafa ŞEKER"
 DEPO = "https://github.com/mustafasneu/poster-basim"
 
 
@@ -834,4 +834,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

@@ -1957,12 +1957,17 @@ class SunmesizBaskiApp:
         )
         self.onizleme_label.pack(expand=True)
 
+        # İmza en alta: durum satırından önce paketlenir.
+        ttk.Label(
+            self.sag_panel,
+            text="powered by Ömer ÖZTÜRK & Mustafa ŞEKER",
+            foreground="gray",
+            anchor=tk.E,
+            font=(self.font_ailesi, 8),
+        ).pack(side=tk.BOTTOM, fill=tk.X)
+
         self.durum_lbl = ttk.Label(self.sag_panel, text="", foreground="gray")
         self.durum_lbl.pack(side=tk.BOTTOM, fill=tk.X)
-
-        ttk.Label(
-            self.sag_panel, text="powered by Omer OZTURK", foreground="gray", anchor=tk.E
-        ).pack(side=tk.BOTTOM, fill=tk.X)
 
     def _kaydirilabilir_alan(self, ust: ttk.Frame) -> ttk.Frame:
         """Dikey kaydırılabilir bir çerçeve döndürür; kaydırma çubuğu ancak gerekirse çıkar."""
@@ -3390,4 +3395,4 @@ def main() -> int:
 if __name__ == "__main__":
     raise SystemExit(main())
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

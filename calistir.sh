@@ -53,4 +53,4 @@ echo "  Linux : sudo apt install -y python3 python3-tk"
 echo "  macOS : brew install python python-tk   (ya da python.org kurulumu)"
 exit 1
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

@@ -37,4 +37,4 @@ echo.
 pause
 exit /b 1
 
-rem powered by Omer OZTURK
+rem powered by Ömer ÖZTÜRK & Mustafa ŞEKER

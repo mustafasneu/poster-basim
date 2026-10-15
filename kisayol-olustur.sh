@@ -4,4 +4,4 @@
 cd "$(dirname "$0")" || exit 1
 exec ./calistir.sh --kisayol
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

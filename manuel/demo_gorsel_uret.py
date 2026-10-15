@@ -44,4 +44,4 @@ cikti = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ornek_poster.j
 img.save(cikti, "JPEG", quality=92)
 print(cikti, img.size, math.pi)
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

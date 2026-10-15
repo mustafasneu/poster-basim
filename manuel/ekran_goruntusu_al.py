@@ -235,4 +235,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER

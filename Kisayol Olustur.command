@@ -6,4 +6,4 @@ cd "$(dirname "$0")" || exit 1
 echo
 echo "Bu pencereyi kapatabilirsiniz."
 
-# powered by Omer OZTURK
+# powered by Ömer ÖZTÜRK & Mustafa ŞEKER
